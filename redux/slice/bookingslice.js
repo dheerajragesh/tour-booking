@@ -4,7 +4,7 @@ const initialState = {
   bookings: [],
   loading: false,
 };
-src
+
 const bookingSlice = createSlice({
   name: "bookings",
   initialState,

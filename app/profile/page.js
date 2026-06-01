@@ -1,54 +1,138 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import api from "@/services/api";
+import Loader from "@/components/Loader";
+import { FiBriefcase, FiMail, FiShield, FiUser } from "react-icons/fi";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const { data } = await api.get("/auth/me");
+        setUser(data.user || data);
+      } catch (error) {
+        setError(
+          error?.response?.data?.message ||
+            "We could not load your profile. Please login again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchProfile();
   }, []);
 
-  const fetchProfile = async () => {
-    try {
-      const { data } = await api.get("/auth/me");
+  if (loading) return <Loader label="Loading profile..." />;
 
-      setUser(data.user);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  if (error || !user) {
+    return (
+      <main className="min-h-screen bg-[#f7f4ef] px-5 py-16">
+        <div className="mx-auto max-w-2xl rounded-[8px] border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <FiUser className="mx-auto text-4xl text-teal-700" />
+          <h1 className="mt-5 text-3xl font-bold text-slate-950">
+            Profile unavailable
+          </h1>
+          <p className="mt-3 text-slate-600">{error}</p>
+          <Link
+            href="/login?redirect=/profile"
+            className="mt-8 inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+          >
+            Login
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
-  if (!user) return <h1>Loading...</h1>;
+  const initials = String(user.name || "Traveler")
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <div className="max-w-4xl mx-auto p-10">
-      <div className="bg-white rounded-xl shadow-md p-8">
-        <div className="flex items-center gap-6">
-          <img
-            src={
-              user.avatar ||
-              "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-            }
-            className="w-32 h-32 rounded-full object-cover"
-          />
+    <main className="min-h-screen bg-[#f7f4ef]">
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
+          <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
+            Account
+          </p>
+          <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+            Traveler profile
+          </h1>
+        </div>
+      </section>
 
-          <div>
-            <h1 className="text-4xl font-bold">
-              {user.name}
-            </h1>
+      <section className="mx-auto max-w-5xl px-5 py-10 sm:px-8 lg:px-10">
+        <div className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm">
+          <div className="h-32 bg-[linear-gradient(135deg,#0f766e,#0f172a)]" />
+          <div className="px-6 pb-8 sm:px-8">
+            <div className="-mt-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex items-end gap-5">
+                <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-slate-950 shadow-lg">
+                  {user?.image || user?.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user?.image || user?.avatar}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-slate-950 text-3xl font-black text-white">
+                      {initials}
+                    </div>
+                  )}
+                </div>
 
-            <p className="text-gray-600 mt-2">
-              {user.email}
-            </p>
+                <div className="pb-2">
+                  <h2 className="text-3xl font-black text-slate-950">
+                    {user.name || "Traveler"}
+                  </h2>
+                  <p className="mt-1 text-slate-500">{user.email}</p>
+                </div>
+              </div>
 
-            <p className="mt-2 capitalize">
-              Role: {user.role}
-            </p>
+              <Link
+                href="/bookings"
+                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+              >
+                View bookings
+              </Link>
+            </div>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-[8px] bg-slate-50 p-5">
+                <FiMail className="text-teal-700" />
+                <p className="mt-3 text-sm text-slate-500">Email</p>
+                <p className="font-bold text-slate-950">{user.email}</p>
+              </div>
+              <div className="rounded-[8px] bg-slate-50 p-5">
+                <FiShield className="text-teal-700" />
+                <p className="mt-3 text-sm text-slate-500">Role</p>
+                <p className="font-bold capitalize text-slate-950">
+                  {user.role || "traveler"}
+                </p>
+              </div>
+              <div className="rounded-[8px] bg-slate-50 p-5">
+                <FiBriefcase className="text-teal-700" />
+                <p className="mt-3 text-sm text-slate-500">Account status</p>
+                <p className="font-bold text-slate-950">Active</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

@@ -1,88 +1,174 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Categories from "@/components/Categories";
+import SearchBar from "@/components/SearchBar";
+import TourCard from "@/components/TourCard";
+import api from "@/services/api";
+import {
+  FALLBACK_TOUR_IMAGES,
+  FALLBACK_TOURS,
+  normalizeList,
+} from "@/utils/tourUtils";
+import {
+  FiArrowRight,
+  FiCheckCircle,
+  FiGlobe,
+  FiShield,
+  FiStar,
+} from "react-icons/fi";
+
+const stats = [
+  { value: "4.8/5", label: "Average traveler rating" },
+  { value: "120+", label: "Curated experiences" },
+  { value: "24h", label: "Booking support" },
+];
 
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_40%),linear-gradient(180deg,_#f8fafc,_#e2e8f0)] py-28">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10">
-          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] items-center">
-            <div>
-              <span className="inline-block rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
-                Trusted Tour Marketplace
-              </span>
-              <h1 className="mt-8 text-5xl font-extrabold tracking-tight text-slate-900 sm:text-6xl">
-                Discover curated adventures, book instantly, and travel with confidence.
-              </h1>
-              <p className="mt-6 text-lg leading-8 text-slate-600 max-w-2xl">
-                Browse local experiences, premium excursions, and one-of-a-kind tours from trusted operators.
-                Secure payments, smart pricing, and support for every traveler.
-              </p>
+  const router = useRouter();
+  const [featuredTours, setFeaturedTours] = useState(FALLBACK_TOURS);
 
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
-                <Link
-                  href="/tours"
-                  className="inline-flex items-center justify-center rounded-full bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-600/10 hover:bg-blue-700 transition"
-                >
-                  Browse Tours
-                </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-8 py-4 text-base font-semibold text-slate-900 hover:bg-slate-100 transition"
-                >
-                  Sign In
-                </Link>
-              </div>
+  useEffect(() => {
+    const fetchFeaturedTours = async () => {
+      try {
+        const { data } = await api.get("/tours");
+        const tours = normalizeList(data, "tours");
+        if (tours.length) setFeaturedTours(tours.slice(0, 3));
+      } catch {
+        setFeaturedTours(FALLBACK_TOURS);
+      }
+    };
+
+    fetchFeaturedTours();
+  }, []);
+
+  const handleSearch = (query) => {
+    const params = new URLSearchParams();
+    if (query) params.set("destination", query);
+    router.push(`/tours${params.toString() ? `?${params}` : ""}`);
+  };
+
+  return (
+    <main className="min-h-screen bg-[#f7f4ef]">
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_520px] lg:px-10 lg:py-14">
+          <div className="flex flex-col justify-center">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-700">
+              <FiShield />
+              Verified operators and secure booking
             </div>
 
-            <div className="rounded-[32px] bg-white p-8 shadow-2xl shadow-slate-200">
-              <div className="space-y-6">
-                <div className="rounded-3xl bg-slate-50 p-6">
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    Fast Booking
-                  </h2>
-                  <p className="mt-2 text-slate-600">
-                    Reserve tours, check availability, and complete checkout in one flow.
-                  </p>
+            <h1 className="mt-7 max-w-4xl text-5xl font-black tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
+              Book remarkable tours without the travel guesswork.
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+              Compare vetted experiences, see clear pricing, reserve dates, and
+              manage every booking from a marketplace built for travelers.
+            </p>
+
+            <div className="mt-8 max-w-2xl">
+              <SearchBar onSearch={handleSearch} />
+            </div>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {stats.map((stat) => (
+                <div key={stat.label} className="rounded-[8px] border border-slate-200 bg-[#f7f4ef] p-4">
+                  <p className="text-2xl font-black text-slate-950">{stat.value}</p>
+                  <p className="mt-1 text-sm text-slate-600">{stat.label}</p>
                 </div>
-                <div className="rounded-3xl bg-slate-50 p-6">
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    Verified Operators
-                  </h2>
-                  <p className="mt-2 text-slate-600">
-                    Every tour is curated and reviewed to keep your experience safe and memorable.
+              ))}
+            </div>
+          </div>
+
+          <div className="relative min-h-[520px] overflow-hidden rounded-[8px] bg-slate-100">
+            <img
+              src={FALLBACK_TOUR_IMAGES[0]}
+              alt="Mountain lake tour destination"
+              className="h-full min-h-[520px] w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent" />
+            <div className="absolute bottom-5 left-5 right-5 rounded-[8px] bg-white/95 p-5 shadow-xl backdrop-blur">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.18em] text-teal-700">
+                    Trending now
                   </p>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-6">
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    Flexible Plans
+                  <h2 className="mt-2 text-2xl font-black text-slate-950">
+                    Moraine Lake Explorer
                   </h2>
-                  <p className="mt-2 text-slate-600">
-                    Book now and manage your travel details from your personal dashboard.
-                  </p>
                 </div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">
+                  <FiStar />
+                  4.9
+                </span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-slate-600">
+                <span className="inline-flex items-center gap-2">
+                  <FiCheckCircle className="text-teal-700" />
+                  Small groups
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <FiGlobe className="text-teal-700" />
+                  Local guides
+                </span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-20">
-        <div className="flex items-center justify-between mb-10">
+      <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-blue-600">
-              Popular categories
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
+              Shop by experience
             </p>
-            <h2 className="mt-3 text-4xl font-bold text-slate-900">
-              Explore tours by theme
+            <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
+              Explore popular categories
             </h2>
           </div>
-          <Link href="/tours" className="text-blue-600 font-semibold hover:underline">
+          <Link
+            href="/tours"
+            className="inline-flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-slate-950"
+          >
             View all tours
+            <FiArrowRight />
           </Link>
         </div>
 
-        <Categories />
+        <div className="mt-8">
+          <Categories />
+        </div>
+      </section>
+
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
+                Featured tours
+              </p>
+              <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
+                Best picks for your next trip
+              </h2>
+            </div>
+            <Link
+              href="/tours"
+              className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+            >
+              Browse marketplace
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {featuredTours.map((tour, index) => (
+              <TourCard key={tour._id || tour.title} tour={tour} index={index} />
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   );

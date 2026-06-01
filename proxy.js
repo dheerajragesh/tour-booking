@@ -1,23 +1,16 @@
 import { NextResponse } from "next/server";
 
-export function middleware(request) {
-  const token = request.cookies.get("token");
-
-  const protectedRoutes = [
-    "/bookings",
-    "/profile",
-    "/operator",
-    "/admin",
-  ];
-
+export function proxy(request) {
+  const token = request.cookies.get("token")?.value;
+  const protectedRoutes = ["/bookings", "/profile", "/operator", "/admin"];
   const isProtected = protectedRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)
   );
 
   if (isProtected && !token) {
-    return NextResponse.redirect(
-      new URL("/login", request.url)
-    );
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

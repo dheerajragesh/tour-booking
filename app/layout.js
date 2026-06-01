@@ -5,8 +5,8 @@ import Footer from "@/components/Footer";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
-  title: "Tour Booking",
-  description: "Tour & Activity Booking Platform",
+  title: "TourBook | Curated Tour Booking Marketplace",
+  description: "Discover, compare, and book trusted tours and travel experiences.",
 };
 
 export default function RootLayout({ children }) {
