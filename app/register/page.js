@@ -41,8 +41,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f4ef] px-5 py-12">
-      <div className="mx-auto grid max-w-6xl overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-xl lg:grid-cols-[460px_1fr]">
+    <main className="min-h-screen bg-[var(--background)] px-5 py-12 text-[var(--foreground)]">
+      <div className="mx-auto grid max-w-6xl overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--card)] shadow-xl lg:grid-cols-[460px_1fr]">
         <section className="flex items-center px-6 py-12 sm:px-10">
           <form onSubmit={handleSubmit} className="w-full">
             <Link href="/" className="inline-flex items-center gap-3 text-xl font-black text-slate-950">
@@ -55,7 +55,7 @@ export default function RegisterPage() {
             <h2 className="mt-10 text-3xl font-black text-slate-950">
               Create account
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
               Join the marketplace to book tours, save favorites, and write
               traveler reviews.
             </p>
@@ -114,14 +114,14 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Creating account..." : "Register"}
             </button>
 
-            <p className="mt-6 text-center text-sm text-slate-600">
+            <p className="mt-6 text-center text-sm text-[var(--muted)]">
               Already have an account?{" "}
-              <Link href="/login" className="font-semibold text-teal-700 hover:text-slate-950">
+              <Link href="/login" className="font-semibold text-teal-700 hover:text-[var(--foreground)]">
                 Sign in
               </Link>
             </p>

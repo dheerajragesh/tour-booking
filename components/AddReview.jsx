@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import api from "@/services/api";
 import toast from "react-hot-toast";
+import { getApiMessage, normalizeRecord, requestWithFallback } from "@/utils/apiHelpers";
 import { FiEdit3, FiSend } from "react-icons/fi";
 
-export default function AddReview({ tourId }) {
+export default function AddReview({ tourId, onReviewAdded }) {
   const [form, setForm] = useState({
     rating: 5,
     comment: "",
@@ -17,16 +17,29 @@ export default function AddReview({ tourId }) {
     setLoading(true);
 
     try {
-      await api.post("/reviews", {
+      const payload = {
         ...form,
         rating: Number(form.rating),
         tourId,
-      });
+        tour: tourId,
+      };
+
+      const { data } = await requestWithFallback(
+        "post",
+        ["/reviews", `/tours/${tourId}/reviews`, "/review"],
+        payload
+      );
+      const review = normalizeRecord(data, ["review"]);
 
       toast.success("Review added");
+      onReviewAdded?.({
+        ...payload,
+        ...review,
+        _id: review?._id || review?.id || `local-${Date.now()}`,
+      });
       setForm({ rating: 5, comment: "" });
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Unable to add review.");
+      toast.error(getApiMessage(error, "Unable to add review."));
     } finally {
       setLoading(false);
     }

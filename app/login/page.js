@@ -44,8 +44,8 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f4ef] px-5 py-12">
-      <div className="mx-auto grid max-w-6xl overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-xl lg:grid-cols-[1fr_460px]">
+    <main className="min-h-screen bg-[var(--background)] px-5 py-12 text-[var(--foreground)]">
+      <div className="mx-auto grid max-w-6xl overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--card)] shadow-xl lg:grid-cols-[1fr_460px]">
         <section className="relative hidden min-h-[620px] overflow-hidden lg:block">
           <img
             src="https://commons.wikimedia.org/wiki/Special:Redirect/file/Hikers_on_the_Ridge_Trail_%2827706806144%29.jpg?width=1400"
@@ -75,7 +75,7 @@ export default function LoginPage() {
             <h2 className="mt-10 text-3xl font-black text-slate-950">
               Sign in
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
               Continue to booking checkout, saved tours, and profile settings.
             </p>
 
@@ -116,7 +116,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Signing in..." : "Login"}
             </button>

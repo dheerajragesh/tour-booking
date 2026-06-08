@@ -51,10 +51,12 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f4ef]">
+    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_520px] lg:px-10 lg:py-14">
           <div className="flex flex-col justify-center">
+
+
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-700">
               <FiShield />
               Verified operators and secure booking
@@ -124,7 +126,7 @@ export default function Home() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
-              Shop by experience
+              Choose the experience you want
             </p>
             <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
               Explore popular categories

@@ -6,7 +6,8 @@ import { Toaster } from "react-hot-toast";
 
 export const metadata = {
   title: "TourBook | Curated Tour Booking Marketplace",
-  description: "Discover, compare, and book trusted tours and travel experiences.",
+  description:
+    "Discover, compare, and book trusted tours and travel experiences.",
 };
 
 export default function RootLayout({ children }) {
@@ -16,10 +17,13 @@ export default function RootLayout({ children }) {
         <Providers>
           <Navbar />
           <Toaster position="top-right" />
-          {children}
+          <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+            {children}
+          </div>
           <Footer />
         </Providers>
       </body>
     </html>
   );
 }
+

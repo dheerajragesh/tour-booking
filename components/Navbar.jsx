@@ -6,7 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 import api from "@/services/api";
 import toast from "react-hot-toast";
 import { clearAuthSession } from "@/utils/authSession";
+import NotificationDropdown from "@/components/NotificationDropdoen";
 import {
+  FiBell,
   FiCompass,
   FiLogOut,
   FiMenu,
@@ -14,6 +16,8 @@ import {
   FiUser,
   FiX,
 } from "react-icons/fi";
+
+import { FiMoon, FiSun } from "react-icons/fi";
 
 const navLinks = [
   { href: "/", label: "Home", exact: true },
@@ -26,6 +30,33 @@ export default function Navbar() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [theme, setTheme] = useState("light");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const isAdmin =
+    user?.role === "admin" ||
+    user?.user?.role === "admin" ||
+    user?.data?.role === "admin";
+
+
+  useEffect(() => {
+    const loadTheme = () => {
+      if (typeof window === "undefined") return;
+      const saved = window.localStorage.getItem("tourbook_theme");
+      const prefersDark =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+      const nextTheme = saved || (prefersDark ? "dark" : "light");
+      setTheme(nextTheme);
+
+      // Apply dark class to the root element so CSS variables & Tailwind dark styles work.
+      document.documentElement.classList.toggle("dark", nextTheme === "dark");
+    };
+
+    loadTheme();
+  }, []);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -59,8 +90,23 @@ export default function Navbar() {
 
   const closeMenu = () => setMenuOpen(false);
 
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+
+    document.documentElement.classList.toggle("dark", next === "dark");
+    window.localStorage.setItem("tourbook_theme", next);
+  };
+
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
+    <nav
+      className="sticky top-0 z-50 border-b backdrop-blur-xl"
+      style={{
+        borderColor: "var(--border)",
+        background: "var(--card)",
+        color: "var(--foreground)",
+      }}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 sm:px-8 lg:px-10">
         <Link
           href="/"
@@ -88,8 +134,45 @@ export default function Navbar() {
         </div>
 
         <div className="tour-desktop-only flex items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 bg-white/60 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-900/60"
+          >
+            {theme === "dark" ? <FiSun /> : <FiMoon />}
+          </button>
+
           {user ? (
             <>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setNotificationsOpen((value) => !value)}
+                  aria-label="Open notifications"
+                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-700 transition hover:border-teal-700 hover:text-teal-700"
+                >
+                  <FiBell />
+                  {unreadCount ? (
+                    <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[11px] font-black text-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  ) : null}
+                </button>
+                {notificationsOpen ? (
+                  <NotificationDropdown onCountChange={setUnreadCount} />
+                ) : null}
+              </div>
+
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-800 transition hover:border-teal-700 hover:text-teal-700"
+                >
+                  Admin Dashboard
+                </Link>
+              )}
+
               <Link
                 href="/profile"
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-teal-700 hover:text-teal-700"
@@ -137,8 +220,10 @@ export default function Navbar() {
       {menuOpen ? (
         <div className="tour-mobile-only border-t border-slate-200 bg-white px-5 py-4">
           <div className="grid gap-2">
+
             {navLinks.map((link) => (
               <Link
+
                 key={link.href}
                 href={link.href}
                 onClick={closeMenu}
@@ -156,6 +241,35 @@ export default function Navbar() {
           <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4">
             {user ? (
               <>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setNotificationsOpen((value) => !value)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700"
+                  >
+                    <FiBell />
+                    Notifications
+                    {unreadCount ? (
+                      <span className="rounded-full bg-rose-600 px-2 py-0.5 text-xs font-black text-white">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    ) : null}
+                  </button>
+                  {notificationsOpen ? (
+                    <NotificationDropdown onCountChange={setUnreadCount} />
+                  ) : null}
+                </div>
+
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={closeMenu}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-5 py-3 text-sm font-semibold text-teal-800"
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+
                 <Link
                   href="/profile"
                   onClick={closeMenu}

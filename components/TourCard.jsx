@@ -2,14 +2,17 @@ import Link from "next/link";
 import {
   formatPrice,
   getDurationLabel,
+  getItemId,
   getRating,
   getTourImage,
 } from "@/utils/tourUtils";
-import { FiArrowRight, FiClock, FiMapPin, FiStar } from "react-icons/fi";
+import { FiArrowRight, FiClock, FiMapPin, FiNavigation, FiStar } from "react-icons/fi";
 
 export default function TourCard({ tour, index = 0 }) {
-  const href = tour?._id ? `/tours/${tour._id}` : "/tours";
+  const tourId = getItemId(tour);
+  const href = tourId ? `/tours/${tourId}` : "/tours";
   const rating = getRating(tour);
+  const distance = Number(tour?.distanceMiles);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -51,11 +54,17 @@ export default function TourCard({ tour, index = 0 }) {
             "Compare pricing, operator details, and booking options for this experience."}
         </p>
 
-        <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
             <FiClock className="text-teal-700" />
             {getDurationLabel(tour?.duration)}
           </span>
+          {Number.isFinite(distance) ? (
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
+              <FiNavigation className="text-sky-600" />
+              {distance < 10 ? distance.toFixed(1) : Math.round(distance)} mi
+            </span>
+          ) : null}
           <Link
             href={href}
             className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"

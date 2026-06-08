@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/services/api";
 import Loader from "@/components/Loader";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import { FiBriefcase, FiMail, FiShield, FiUser } from "react-icons/fi";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [roleLoading, setRoleLoading] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -61,6 +65,30 @@ export default function ProfilePage() {
     .join("")
     .toUpperCase();
 
+  const currentRole = user?.role || "user";
+
+  const handleBecomeOperator = async () => {
+    if (roleLoading) return;
+    setRoleLoading(true);
+
+    try {
+      await api.post("/auth/role", { role: "operator" });
+      toast.success("Role updated to operator.");
+
+      const { data } = await api.get("/auth/me");
+      setUser(data.user || data);
+
+      router.refresh();
+    } catch (e) {
+      toast.error(
+        e?.response?.data?.message ||
+          "Unable to update role. Please try again."
+      );
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#f7f4ef]">
       <section className="border-b border-slate-200 bg-white">
@@ -111,25 +139,73 @@ export default function ProfilePage() {
               </Link>
             </div>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-8 flex flex-col gap-4 sm:grid sm:grid-cols-3">
               <div className="rounded-[8px] bg-slate-50 p-5">
                 <FiMail className="text-teal-700" />
                 <p className="mt-3 text-sm text-slate-500">Email</p>
                 <p className="font-bold text-slate-950">{user.email}</p>
               </div>
+
               <div className="rounded-[8px] bg-slate-50 p-5">
                 <FiShield className="text-teal-700" />
                 <p className="mt-3 text-sm text-slate-500">Role</p>
                 <p className="font-bold capitalize text-slate-950">
-                  {user.role || "traveler"}
+                  {currentRole}
                 </p>
+
+                {currentRole === "admin" ? (
+                  <div className="mt-4 rounded-full bg-slate-100 px-4 py-2 text-center text-sm font-semibold text-slate-700">
+                    Admin account
+                  </div>
+                ) : currentRole !== "operator" ? (
+                  <button
+                    type="button"
+                    onClick={handleBecomeOperator}
+                    disabled={roleLoading}
+                    className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {roleLoading ? "Requesting operator..." : "Work as operator"}
+                  </button>
+                ) : (
+                  <div className="mt-4 rounded-full bg-teal-50 px-4 py-2 text-center text-sm font-semibold text-teal-700">
+                    Operator enabled
+                  </div>
+                )}
               </div>
+
               <div className="rounded-[8px] bg-slate-50 p-5">
                 <FiBriefcase className="text-teal-700" />
                 <p className="mt-3 text-sm text-slate-500">Account status</p>
                 <p className="font-bold text-slate-950">Active</p>
               </div>
             </div>
+
+            {currentRole === "operator" ? (
+              <div className="mt-6 rounded-[8px] border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
+                  Operator access
+                </p>
+                <h3 className="mt-3 text-2xl font-black text-slate-950">
+                  Manage tours
+                </h3>
+
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/operator/Dashboard"
+                    className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+                  >
+                    Operator Dashboard
+                  </Link>
+
+                  <Link
+                    href="/operator/create-tour"
+                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-teal-200 hover:bg-teal-50"
+                  >
+                    Create a tour
+                  </Link>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

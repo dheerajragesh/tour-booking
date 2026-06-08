@@ -6,13 +6,16 @@ import { useParams } from "next/navigation";
 import api from "@/services/api";
 import AddReview from "@/components/AddReview";
 import BookingForm from "@/components/BookingForm";
+import ChatBox from "@/components/ChatBox";
 import ImageGallery from "@/components/ImageGallery";
 import Loader from "@/components/Loader";
 import ReviewCard from "@/components/ReviewCard";
+import SocialShare from "@/components/SocialShare";
 import WishlistButton from "@/components/WishList";
 import {
   FALLBACK_TOURS,
   formatPrice,
+  getItemId,
   getDurationLabel,
   getRating,
 } from "@/utils/tourUtils";
@@ -87,6 +90,24 @@ export default function TourDetailsPage() {
   }
 
   const reviews = Array.isArray(tour.reviews) ? tour.reviews : [];
+  const tourId = getItemId(tour);
+  const operatorName =
+    tour.operator?.name ||
+    tour.operatorName ||
+    tour.createdBy?.name ||
+    "operator";
+  const operatorId =
+    getItemId(tour.operator) ||
+    tour.operatorId ||
+    tour.operator ||
+    getItemId(tour.createdBy);
+
+  const handleReviewAdded = (review) => {
+    setTour((current) => ({
+      ...current,
+      reviews: [review, ...(Array.isArray(current?.reviews) ? current.reviews : [])],
+    }));
+  };
 
   return (
     <main className="min-h-screen bg-[#f7f4ef]">
@@ -202,9 +223,15 @@ export default function TourDetailsPage() {
               </div>
 
               <div className="mt-6">
-                <AddReview tourId={tour._id} />
+                <AddReview tourId={tourId} onReviewAdded={handleReviewAdded} />
               </div>
             </div>
+
+            <ChatBox
+              tourId={tourId}
+              operatorId={operatorId}
+              operatorName={operatorName}
+            />
           </div>
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
@@ -217,6 +244,9 @@ export default function TourDetailsPage() {
                 Taxes, operator fees, and checkout details are finalized by the
                 booking API.
               </p>
+            </div>
+            <div className="mt-4">
+              <SocialShare title={tour.title} />
             </div>
           </aside>
         </div>

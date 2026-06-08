@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import api from "@/services/api";
+import AIGuide from "@/components/AIGuide";
 import FilterSidebar from "@/components/FilterSidebar";
 import Loader from "@/components/Loader";
+import Pagination from "@/components/Pagination";
 import SearchBar from "@/components/SearchBar";
 import TourCard from "@/components/TourCard";
 import {
   FALLBACK_TOURS,
+  getDistanceMiles,
   getRating,
+  getTourCoordinates,
   normalizeList,
 } from "@/utils/tourUtils";
 
@@ -17,6 +21,8 @@ const initialFilters = {
   price: "",
   duration: "",
   category: "",
+  nearby: false,
+  radius: "50",
   sort: "recommended",
 };
 
@@ -37,6 +43,10 @@ export default function ToursPage() {
   const [filters, setFilters] = useState(getInitialFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 9;
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -66,35 +76,139 @@ export default function ToursPage() {
     const categoryQuery = filters.category.trim().toLowerCase();
     const maxPrice = Number(filters.price);
     const maxDuration = Number(filters.duration);
+    const radius = Number(filters.radius || 50);
 
-    const results = tours.filter((tour) => {
-      const destination = String(tour.destination || "").toLowerCase();
-      const title = String(tour.title || "").toLowerCase();
-      const category = String(tour.category || "").toLowerCase();
+    const normalize = (s) =>
+      String(s || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const tokenize = (s) =>
+      normalize(s)
+        .split(" ")
+        .filter(Boolean);
+
+    const queryTokens = destinationQuery
+      ? tokenize(destinationQuery)
+      : [];
+
+    const annotatedTours = tours.map((tour) => {
+      const coordinates = getTourCoordinates(tour);
+      const distance =
+        userLocation && coordinates
+          ? getDistanceMiles(userLocation, coordinates)
+          : null;
+
+      return { tour, distance };
+    });
+
+    const results = annotatedTours.filter(({ tour, distance }) => {
+      const destination = normalize(tour.destination);
+      const title = normalize(tour.title);
+      const category = normalize(tour.category);
       const price = Number(tour.price || 0);
       const duration = Number(tour.duration || 0);
 
-      const destinationMatch =
-        !destinationQuery ||
-        destination.includes(destinationQuery) ||
-        title.includes(destinationQuery);
       const categoryMatch = !categoryQuery || category.includes(categoryQuery);
       const priceMatch = !maxPrice || price <= maxPrice;
       const durationMatch = !maxDuration || duration <= maxDuration;
+      const nearbyMatch =
+        !filters.nearby || (distance !== null && distance <= radius);
 
-      return destinationMatch && categoryMatch && priceMatch && durationMatch;
+      if (!destinationQuery) {
+        return categoryMatch && priceMatch && durationMatch && nearbyMatch;
+      }
+
+      // E-commerce style matching: token-based AND match.
+      // Each query token must appear either in destination or title.
+      const destinationTokensMatch = queryTokens.every(
+        (t) => destination.includes(t) || title.includes(t)
+      );
+
+      return (
+        destinationTokensMatch &&
+        categoryMatch &&
+        priceMatch &&
+        durationMatch &&
+        nearbyMatch
+      );
     });
 
     return [...results].sort((a, b) => {
-      if (filters.sort === "price-low") return Number(a.price || 0) - Number(b.price || 0);
-      if (filters.sort === "price-high") return Number(b.price || 0) - Number(a.price || 0);
-      if (filters.sort === "duration") return Number(a.duration || 0) - Number(b.duration || 0);
+      if (filters.sort === "nearest" || filters.nearby) {
+        return (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY);
+      }
 
-      const ratingB = Number.parseFloat(getRating(b));
-      const ratingA = Number.parseFloat(getRating(a));
+      if (filters.sort === "price-low") return Number(a.tour.price || 0) - Number(b.tour.price || 0);
+      if (filters.sort === "price-high") return Number(b.tour.price || 0) - Number(a.tour.price || 0);
+      if (filters.sort === "duration") return Number(a.tour.duration || 0) - Number(b.tour.duration || 0);
+
+      const ratingB = Number.parseFloat(getRating(b.tour));
+      const ratingA = Number.parseFloat(getRating(a.tour));
       return (Number.isNaN(ratingB) ? 0 : ratingB) - (Number.isNaN(ratingA) ? 0 : ratingA);
-    });
-  }, [tours, filters]);
+    }).map(({ tour, distance }) =>
+      distance === null ? tour : { ...tour, distanceMiles: distance }
+    );
+  }, [tours, filters, userLocation]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTours.length / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const paginatedTours = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredTours.slice(start, end);
+  }, [filteredTours, currentPage]);
+  const resultStart = filteredTours.length
+    ? (currentPage - 1) * pageSize + 1
+    : 0;
+  const resultEnd = Math.min(currentPage * pageSize, filteredTours.length);
+
+  const updateFilters = (updater) => {
+    setPage(1);
+    setFilters((current) =>
+      typeof updater === "function" ? updater(current) : updater
+    );
+  };
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus("Location is not supported in this browser.");
+      return;
+    }
+
+    setLocationStatus("Getting your location...");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationStatus("Showing tours near your current location.");
+        updateFilters((current) => ({
+          ...current,
+          nearby: true,
+          sort: "nearest",
+        }));
+      },
+      () => {
+        setLocationStatus("Location permission was not granted.");
+        setUserLocation(null);
+        updateFilters((current) => ({
+          ...current,
+          nearby: false,
+        }));
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleClearLocation = () => {
+    setUserLocation(null);
+    setLocationStatus("");
+  };
 
   if (loading) return <Loader label="Loading tours..." />;
 
@@ -120,7 +234,10 @@ export default function ToursPage() {
               compact
               defaultValue={filters.destination}
               onSearch={(query) =>
-                setFilters((current) => ({ ...current, destination: query }))
+                updateFilters((current) => ({
+                  ...current,
+                  destination: query,
+                }))
               }
             />
           </div>
@@ -135,24 +252,51 @@ export default function ToursPage() {
         ) : null}
 
         <div className="grid gap-8 lg:grid-cols-[290px_minmax(0,1fr)]">
-          <FilterSidebar filters={filters} setFilters={setFilters} />
+          <FilterSidebar
+            filters={filters}
+            setFilters={updateFilters}
+            locationStatus={locationStatus}
+            onUseMyLocation={handleUseMyLocation}
+            onClearLocation={handleClearLocation}
+          />
 
           <div>
-            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <AIGuide
+              tours={filteredTours}
+              filters={filters}
+              onApplySuggestion={(suggestion) =>
+                updateFilters((current) => ({ ...current, ...suggestion }))
+              }
+            />
+
+            <div className="mb-5 mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-semibold text-slate-600">
                 {filteredTours.length} tour{filteredTours.length === 1 ? "" : "s"} found
               </p>
               <p className="text-sm text-slate-500">
-                Prices and availability are served by your API.
+                {filteredTours.length
+                  ? `Showing ${resultStart}-${resultEnd}`
+                  : "Prices and availability are served by your API."}
               </p>
             </div>
 
             {filteredTours.length ? (
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {filteredTours.map((tour, index) => (
-                  <TourCard key={tour._id || `${tour.title}-${index}`} tour={tour} index={index} />
-                ))}
-              </div>
+              <>
+                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                  {paginatedTours.map((tour, index) => (
+                    <TourCard
+                      key={tour._id || `${tour.title}-${index}`}
+                      tour={tour}
+                      index={(currentPage - 1) * pageSize + index}
+                    />
+                  ))}
+                </div>
+                <Pagination
+                  page={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
+              </>
             ) : (
               <div className="rounded-[8px] border border-slate-200 bg-white p-10 text-center shadow-sm">
                 <h2 className="text-2xl font-bold text-slate-950">
