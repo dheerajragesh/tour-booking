@@ -50,15 +50,19 @@ export default function OperatorDashboard() {
     () =>
       bookings.reduce((total, booking) => {
         const status = String(booking.status || "").toLowerCase();
-        if (!["paid", "confirmed"].includes(status)) return total;
+        if (!["paid", "confirmed", "success"].includes(status)) return total;
         return total + Number(booking.totalPrice || booking.amount || 0);
       }, 0),
     [bookings]
   );
 
+
   const pendingCount = bookings.filter(
     (booking) => String(booking.status || "pending").toLowerCase() === "pending"
   ).length;
+
+
+
 
   const bookingPageSize = 8;
   const tourPageSize = 6;
@@ -247,7 +251,9 @@ export default function OperatorDashboard() {
                   );
                   const confirmed = safe(
                     bookings.filter(
-                      (b) => String(b.status || "").toLowerCase() === "confirmed"
+                      (b) =>
+                        ["confirmed", "success"]
+                          .includes(String(b.status || "").toLowerCase())
                     ).length
                   );
                   const cancelled = safe(
@@ -263,6 +269,7 @@ export default function OperatorDashboard() {
                     { label: "Cancelled", value: cancelled, color: "#ef4444" },
                   ];
                 })()}
+
               />
             </div>
           </div>
@@ -412,11 +419,22 @@ export default function OperatorDashboard() {
                       <tr key={bookingId} className="border-b border-slate-100">
                         <td className="py-4 pr-4 font-semibold text-slate-950">
                           {tour.title || booking.tourTitle || "Tour request"}
+                          {String(
+                            booking.paymentMethod ||
+                              booking.payment_method ||
+                              ""
+                          ).toLowerCase() === "cash" ? (
+                            <div className="mt-1 text-[11px] font-semibold text-teal-700">
+                              Cash on hand
+                            </div>
+                          ) : null}
                         </td>
+
                         <td className="py-4 pr-4 text-slate-600">
                           {formatDate(booking.bookingDate || booking.date)}
                           {time ? ` at ${formatTime(time)}` : ""}
                         </td>
+
                         <td className="py-4 pr-4 text-slate-600">{guests}</td>
                         <td className="py-4 pr-4">
                           <span
@@ -434,33 +452,54 @@ export default function OperatorDashboard() {
                         <td className="py-4">
                           {status === "pending" ? (
                             <div className="flex gap-2">
-                              <button
-                                type="button"
-                                disabled={updatingId === bookingId}
-                                onClick={() =>
-                                  updateBookingStatus(booking, "confirmed")
-                                }
-                                className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-950 disabled:opacity-60"
-                              >
-                                <FiCheckCircle />
-                                Confirm
-                              </button>
-                              <button
-                                type="button"
-                                disabled={updatingId === bookingId}
-                                onClick={() =>
-                                  updateBookingStatus(booking, "cancelled")
-                                }
-                                className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
-                              >
-                                <FiXCircle />
-                                Decline
-                              </button>
+                              {String(
+                                booking.paymentMethod ||
+                                  booking.payment_method ||
+                                  ""
+                              ).toLowerCase() === "cash" ? (
+                                <button
+                                  type="button"
+                                  disabled={updatingId === bookingId}
+                                  onClick={() =>
+                                    updateBookingStatus(booking, "success")
+                                  }
+                                  className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-950 disabled:opacity-60"
+                                >
+                                  <FiCheckCircle />
+                                  Mark success
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={updatingId === bookingId}
+                                    onClick={() =>
+                                      updateBookingStatus(booking, "confirmed")
+                                    }
+                                    className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-950 disabled:opacity-60"
+                                  >
+                                    <FiCheckCircle />
+                                    Confirm
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={updatingId === bookingId}
+                                    onClick={() =>
+                                      updateBookingStatus(booking, "cancelled")
+                                    }
+                                    className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                                  >
+                                    <FiXCircle />
+                                    Decline
+                                  </button>
+                                </>
+                              )}
                             </div>
                           ) : (
                             <span className="text-slate-500">No action</span>
                           )}
                         </td>
+
                       </tr>
                     );
                   })

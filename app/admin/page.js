@@ -8,14 +8,10 @@ import {
   normalizeCollection,
   requestWithFallback,
 } from "@/utils/apiHelpers";
-import {
-  formatPrice,
-  getDurationLabel,
-  getItemId,
-} from "@/utils/tourUtils";
+import { formatPrice, getDurationLabel, getItemId } from "@/utils/tourUtils";
 import SimplePieChart from "@/components/SimplePieChart";
 import AdminPaginatedTable from "@/components/AdminPaginatedTable";
-
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 
 function getRole(user) {
   return (
@@ -27,12 +23,7 @@ function getRole(user) {
   );
 }
 
-function ConfirmButton({
-  onConfirm,
-  disabled,
-  className = "",
-  children,
-}) {
+function ConfirmButton({ onConfirm, disabled, className = "", children }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -46,37 +37,19 @@ function ConfirmButton({
         {children}
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-lg font-bold">Confirm delete</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              This action cannot be undone.
-            </p>
-
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={async () => {
-                  setOpen(false);
-                  await onConfirm();
-                }}
-                className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        open={open}
+        title="Confirm delete"
+        description="This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        disabled={disabled}
+        onCancel={() => setOpen(false)}
+        onConfirm={async () => {
+          setOpen(false);
+          await onConfirm();
+        }}
+      />
     </>
   );
 }
@@ -127,7 +100,6 @@ export default function AdminDashboard() {
     ]);
     setTours(normalizeCollection(data, ["tours", "tourPlans"]));
   }
-
 
   async function refreshOperatorPlans(operatorId) {
     setPlansLoadingFor(operatorId);
@@ -264,9 +236,7 @@ export default function AdminDashboard() {
     return (
       <div className="p-10">
         <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-        <p className="text-slate-600">
-          Access denied. Admin role required.
-        </p>
+        <p className="text-slate-600">Access denied. Admin role required.</p>
       </div>
     );
   }
@@ -280,9 +250,7 @@ export default function AdminDashboard() {
           <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
             Operator vs Admin/Users
           </p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">
-            User distribution
-          </h2>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">User distribution</h2>
 
           <div className="mt-5 flex flex-wrap items-center gap-6">
             <div className="shrink-0">
@@ -327,9 +295,7 @@ export default function AdminDashboard() {
                         {r.label}
                       </span>
                     </div>
-                    <span className="text-sm font-black text-slate-950">
-                      {r.value}
-                    </span>
+                    <span className="text-sm font-black text-slate-950">{r.value}</span>
                   </div>
                 ));
               })()}
@@ -357,7 +323,6 @@ export default function AdminDashboard() {
           <p className="text-4xl mt-4">{Object.keys(operatorPlans).length}</p>
         </div>
       </div>
-
 
       <div className="grid gap-8 xl:grid-cols-2">
         <AdminPaginatedTable
@@ -412,10 +377,7 @@ export default function AdminDashboard() {
             const plans = operatorPlans[operatorId] || [];
 
             return (
-              <tr
-                key={operatorId}
-                className="border-t border-slate-100 align-top"
-              >
+              <tr key={operatorId} className="border-t border-slate-100 align-top">
                 <td className="py-3 pr-3 font-semibold text-slate-900">
                   {op.name || op.fullName || "-"}
                 </td>
@@ -428,9 +390,7 @@ export default function AdminDashboard() {
                       disabled={loading || plansLoadingFor === operatorId}
                       onClick={() => refreshOperatorPlans(operatorId)}
                     >
-                      {plansLoadingFor === operatorId
-                        ? "Loading..."
-                        : "View plans"}
+                      {plansLoadingFor === operatorId ? "Loading..." : "View plans"}
                     </button>
 
                     <span className="text-slate-700">{plans.length} plans</span>
@@ -439,14 +399,10 @@ export default function AdminDashboard() {
                   {plans.length > 0 && (
                     <ul className="mt-2 list-disc pl-5 text-slate-700">
                       {plans.slice(0, 4).map((p) => (
-                        <li key={p.id || p._id || p.title}>
-                          {p.title || p.name || "Tour plan"}
-                        </li>
+                        <li key={p.id || p._id || p.title}>{p.title || p.name || "Tour plan"}</li>
                       ))}
                       {plans.length > 4 && (
-                        <li className="text-slate-500">
-                          +{plans.length - 4} more
-                        </li>
+                        <li className="text-slate-500">+{plans.length - 4} more</li>
                       )}
                     </ul>
                   )}
@@ -483,10 +439,7 @@ export default function AdminDashboard() {
             const tourId = getItemId(tour);
 
             return (
-              <tr
-                key={tourId || tour.title}
-                className="border-t border-slate-100"
-              >
+              <tr key={tourId || tour.title} className="border-t border-slate-100">
                 <td className="py-3 pr-3 font-semibold text-slate-900">
                   {tour.title || tour.name || "Untitled tour"}
                 </td>
