@@ -25,10 +25,15 @@ import {
 } from "react-icons/fi";
 import SimplePieChart from "@/components/SimplePieChart";
 import Pagination from "@/components/Pagination";
+import ChatBox from "@/components/ChatBox";
+import api from "@/services/api";
+import { FiMessageSquare } from "react-icons/fi";
+
 
 const statusClasses = {
 
   confirmed: "bg-emerald-100 text-emerald-700",
+  success: "bg-emerald-100 text-emerald-700",
   paid: "bg-emerald-100 text-emerald-700",
   pending: "bg-amber-100 text-amber-700",
   cancelled: "bg-rose-100 text-rose-700",
@@ -39,12 +44,66 @@ function getBookingTour(booking) {
   return booking.tour || booking.tourId || booking.tourPlan || {};
 }
 
+function getEntityId(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return getItemId(value);
+}
+
+function getEntityName(value, fallback = "Traveler") {
+  if (!value || typeof value === "string") return fallback;
+  return value.name || value.fullName || value.email || fallback;
+}
+
+function getBookingTraveler(booking) {
+  const traveler =
+    booking.user ||
+    booking.userId ||
+    booking.customer ||
+    booking.customerId ||
+    booking.traveler ||
+    booking.travelerId ||
+    booking.createdBy ||
+    null;
+
+  const id =
+    getEntityId(traveler) ||
+    getEntityId(booking.userId) ||
+    getEntityId(booking.customerId) ||
+    getEntityId(booking.travelerId) ||
+    getEntityId(booking.createdBy);
+
+  const name =
+    getEntityName(traveler, "") ||
+    booking.userName ||
+    booking.customerName ||
+    booking.travelerName ||
+    "Traveler";
+
+  return { id, name };
+}
+
+function getConversationPeer(conversation, currentUserId) {
+  const userA = conversation.userA;
+  const userB = conversation.userB;
+  const userAId = getEntityId(userA);
+  const userBId = getEntityId(userB);
+  const peer = String(userAId) === String(currentUserId) ? userB : userA;
+
+  return {
+    id: getEntityId(peer),
+    name: getEntityName(peer, "Traveler"),
+  };
+}
+
 export default function OperatorDashboard() {
   const [tours, setTours] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState("");
+  const [conversations, setConversations] = useState([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
 
   const revenue = useMemo(
     () =>
@@ -105,9 +164,9 @@ export default function OperatorDashboard() {
           "/tours/my",
         ]),
         requestWithFallback("get", [
-          "/bookings/my-bookings",
-          "/operator/bookings",
           "/bookings/operator",
+          "/operator/bookings",
+          "/bookings/my-bookings",
           "/bookings",
         ]),
       ]);
@@ -127,6 +186,65 @@ export default function OperatorDashboard() {
     return () => window.clearTimeout(timer);
   }, [fetchDashboard]);
 
+  const [activeChat, setActiveChat] = useState({
+    bookingId: null,
+    userId: null,
+    userName: "Traveler",
+  });
+  const [operatorId, setOperatorId] = useState(null);
+
+  const loadOperator = useCallback(async () => {
+    try {
+      const { data } = await api.get("/auth/me");
+      const id = data?.user?._id || data?.user?.id || data?._id || data?.id;
+      setOperatorId(id || null);
+    } catch {
+      setOperatorId(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(loadOperator, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadOperator]);
+
+  const fetchConversations = useCallback(async () => {
+    if (!operatorId) return;
+
+    setConversationsLoading(true);
+
+    try {
+      const { data } = await requestWithFallback("get", ["/chat/conversations"]);
+      setConversations(normalizeCollection(data, ["conversations"]));
+    } catch {
+      setConversations([]);
+    } finally {
+      setConversationsLoading(false);
+    }
+  }, [operatorId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(fetchConversations, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [fetchConversations]);
+
+  const openChat = ({ userId, userName = "Traveler", bookingId = null }) => {
+    setActiveChat({ bookingId, userId, userName });
+  };
+
+  const handleOpenChatForBooking = (booking) => {
+    const bookingId = getItemId(booking);
+    const traveler = getBookingTraveler(booking);
+
+    openChat({
+      bookingId,
+      userId: traveler.id,
+      userName: traveler.name,
+    });
+  };
+
   const updateBookingStatus = async (booking, status) => {
     const bookingId = getItemId(booking);
     setUpdatingId(bookingId);
@@ -135,11 +253,15 @@ export default function OperatorDashboard() {
       await requestWithFallback(
         "patch",
         [
+          `/bookings/status/${bookingId}`,
+          `/bookings/${bookingId}/status`,
           `/operator/bookings/${bookingId}`,
           `/bookings/${bookingId}`,
-          `/bookings/status/${bookingId}`,
         ],
-        { status }
+        {
+          status,
+          ...(status === "success" ? { paymentStatus: "paid" } : {}),
+        }
       );
 
       setBookings((current) =>
@@ -184,6 +306,40 @@ export default function OperatorDashboard() {
       </section>
 
       <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10">
+        {operatorId && activeChat.userId ? (
+          <div className="mb-8">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-teal-700">
+              <FiMessageSquare />
+              {activeChat.bookingId
+                ? `Conversation for booking #${String(activeChat.bookingId).slice(-6)}`
+                : `Conversation with ${activeChat.userName || "Traveler"}`}
+            </div>
+            <ChatBox
+              currentUserId={operatorId}
+              operatorId={activeChat.userId}
+              operatorName={activeChat.userName || "Traveler"}
+              title={`Reply to ${activeChat.userName || "traveler"}`}
+              emptyText="No messages in this conversation yet."
+              onMessageSent={fetchConversations}
+            />
+
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveChat({
+                    bookingId: null,
+                    userId: null,
+                    userName: "Traveler",
+                  })
+                }
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-teal-700 hover:text-teal-700"
+              >
+                Close chat
+              </button>
+            </div>
+          </div>
+        ) : null}
         {error ? (
           <div className="mb-6 rounded-[8px] border border-rose-200 bg-white px-5 py-4 text-sm font-semibold text-rose-700">
             {error}
@@ -225,7 +381,7 @@ export default function OperatorDashboard() {
           <div className="rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm md:col-span-3">
             <p className="inline-flex items-center gap-2 text-sm text-slate-500">
               <FiDollarSign className="text-teal-700" />
-              Total Revenue
+              Profit from successful bookings
             </p>
             <p className="mt-2 text-3xl font-black text-slate-950">
               {loading ? "-" : formatPrice(revenue)}
@@ -252,7 +408,7 @@ export default function OperatorDashboard() {
                   const confirmed = safe(
                     bookings.filter(
                       (b) =>
-                        ["confirmed", "success"]
+                        ["confirmed", "success", "paid"]
                           .includes(String(b.status || "").toLowerCase())
                     ).length
                   );
@@ -275,7 +431,70 @@ export default function OperatorDashboard() {
           </div>
         </div>
 
+        <div className="mt-8 rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-slate-950">
+                Messages from travelers
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Open a conversation and reply from the operator dashboard.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchConversations}
+              disabled={!operatorId || conversationsLoading}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-teal-700 hover:text-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {conversationsLoading ? "Refreshing..." : "Refresh messages"}
+            </button>
+          </div>
 
+          <div className="mt-5 divide-y divide-slate-100">
+            {conversationsLoading ? (
+              <p className="py-5 text-sm text-slate-600">
+                Loading conversations...
+              </p>
+            ) : conversations.length ? (
+              conversations.map((conversation) => {
+                const peer = getConversationPeer(conversation, operatorId);
+
+                return (
+                  <div
+                    key={getEntityId(conversation)}
+                    className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-950">{peer.name}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Conversation #{String(getEntityId(conversation)).slice(-6)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!peer.id}
+                      onClick={() =>
+                        openChat({
+                          userId: peer.id,
+                          userName: peer.name,
+                        })
+                      }
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:border-teal-700 hover:text-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <FiMessageSquare />
+                      Reply
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="py-5 text-sm text-slate-600">
+                No traveler messages yet.
+              </p>
+            )}
+          </div>
+        </div>
 
         <div className="mt-8 rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -415,6 +634,9 @@ export default function OperatorDashboard() {
                       1;
                     const time = booking.time || booking.startTime || "";
 
+                    const traveler = getBookingTraveler(booking);
+                    const isPending = status === "pending";
+
                     return (
                       <tr key={bookingId} className="border-b border-slate-100">
                         <td className="py-4 pr-4 font-semibold text-slate-950">
@@ -450,54 +672,61 @@ export default function OperatorDashboard() {
                           {formatPrice(booking.totalPrice || booking.amount)}
                         </td>
                         <td className="py-4">
-                          {status === "pending" ? (
-                            <div className="flex gap-2">
-                              {String(
-                                booking.paymentMethod ||
-                                  booking.payment_method ||
-                                  ""
-                              ).toLowerCase() === "cash" ? (
+                          <div className="flex flex-wrap gap-2">
+                            {traveler.id ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenChatForBooking(booking)}
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:border-teal-700 hover:text-teal-700"
+                              >
+                                <FiMessageSquare />
+                                Reply
+                              </button>
+                            ) : null}
+
+                            {isPending ? (
+                              <>
                                 <button
                                   type="button"
                                   disabled={updatingId === bookingId}
                                   onClick={() =>
                                     updateBookingStatus(booking, "success")
                                   }
-                                  className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-950 disabled:opacity-60"
+                                  className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                   <FiCheckCircle />
                                   Mark success
                                 </button>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    disabled={updatingId === bookingId}
-                                    onClick={() =>
-                                      updateBookingStatus(booking, "confirmed")
-                                    }
-                                    className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-950 disabled:opacity-60"
-                                  >
-                                    <FiCheckCircle />
-                                    Confirm
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={updatingId === bookingId}
-                                    onClick={() =>
-                                      updateBookingStatus(booking, "cancelled")
-                                    }
-                                    className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
-                                  >
-                                    <FiXCircle />
-                                    Decline
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-500">No action</span>
-                          )}
+                                <button
+                                  type="button"
+                                  disabled={updatingId === bookingId}
+                                  onClick={() =>
+                                    updateBookingStatus(booking, "confirmed")
+                                  }
+                                  className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-bold text-teal-800 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  <FiCheckCircle />
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={updatingId === bookingId}
+                                  onClick={() =>
+                                    updateBookingStatus(booking, "cancelled")
+                                  }
+                                  className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  <FiXCircle />
+                                  Decline
+                                </button>
+                              </>
+                            ) : null}
+
+                            {!traveler.id && !isPending ? (
+                              <span className="text-slate-500">No action</span>
+                            ) : null}
+                          </div>
+
                         </td>
 
                       </tr>
