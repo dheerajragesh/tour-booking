@@ -1,45 +1,23 @@
 import Link from "next/link";
 import {
-  FiCamera,
   FiCloudLightning,
   FiCompass,
   FiMap,
   FiSun,
   FiUmbrella,
+  FiUsers,
 } from "react-icons/fi";
 
+
 const categories = [
-  {
-    name: "Adventure",
-    icon: FiCloudLightning,
-    description: "Rafting, climbs, and high-energy escapes",
-  },
-  {
-    name: "Camping",
-    icon: FiSun,
-    description: "Night skies, campfires, and guided stays",
-  },
-  {
-    name: "Wildlife",
-    icon: FiCamera,
-    description: "Safaris, reserves, and nature encounters",
-  },
-  {
-    name: "Hiking",
-    icon: FiMap,
-    description: "Trails, ridges, and scenic day routes",
-  },
-  {
-    name: "Cultural",
-    icon: FiCompass,
-    description: "Food, heritage, city walks, and local hosts",
-  },
-  {
-    name: "Water Sports",
-    icon: FiUmbrella,
-    description: "Snorkeling, kayaking, and coastal days",
-  },
+  { name: "International Tours", icon: FiCompass, description: "Explore global destinations & curated itineraries" },
+  { name: "Domestic Tour", icon: FiMap, description: "Discover local favorites and nearby getaways" },
+  { name: "Honey moon Tours", icon: FiSun, description: "Romantic stays, beaches, and unforgettable moments" },
+  { name: "Family Tours", icon: FiUsers, description: "Kid-friendly trips and family experiences" },
+  { name: "Luxury Tours", icon: FiCloudLightning, description: "Premium comfort, VIP perks, and exceptional guides" },
+  { name: "Budget tour", icon: FiUmbrella, description: "Affordable adventures without compromising quality" },
 ];
+
 
 export default function Categories() {
   return (

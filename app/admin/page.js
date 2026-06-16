@@ -224,8 +224,8 @@ export default function AdminDashboard() {
   }
 
   if (authLoading) {
-    return (
-      <div className="p-10">
+  return (
+    <div className="p-10 dark:text-[var(--foreground)]">
         <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
         <p className="text-slate-600">Loading...</p>
       </div>
@@ -246,7 +246,7 @@ export default function AdminDashboard() {
       <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
 
       <div className="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white p-6 rounded-xl shadow-md md:col-span-2">
+      <div className="bg-white p-6 rounded-xl shadow-md md:col-span-2 dark:bg-[var(--card)] dark:border dark:border-[var(--border)]">
           <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
             Operator vs Admin/Users
           </p>

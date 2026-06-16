@@ -302,15 +302,16 @@ export default function BookingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f4ef]">
-      <section className="border-b border-slate-200 bg-white">
+    <main className="min-h-screen bg-[#f7f4ef] dark:bg-[var(--background)]">
+      <section className="border-b border-slate-200 bg-white dark:border-[var(--border)] dark:bg-[var(--card)]">
+
         <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700 dark:text-teal-300">
             Travel desk
           </p>
           <div className="mt-4 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="text-4xl font-bold tracking-tight text-slate-950 dark:text-[var(--foreground)] sm:text-5xl">
                 My bookings
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
@@ -378,11 +379,11 @@ export default function BookingsPage() {
                         </span>
                       </div>
 
-                      <h2 className="mt-4 text-2xl font-bold text-slate-950">
+                      <h2 className="mt-4 text-2xl font-bold text-slate-950 dark:text-[var(--foreground)]">
                         {tour.title || "Tour reservation"}
                       </h2>
 
-                      <div className="mt-5 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                      <div className="mt-5 grid gap-3 text-sm text-slate-600 dark:text-[var(--muted)] sm:grid-cols-2">
                         <span className="inline-flex items-center gap-2">
                           <FiMapPin className="text-teal-700" />
                           {tour.destination || "Destination pending"}
@@ -403,7 +404,7 @@ export default function BookingsPage() {
                       </div>
 
                       {specialRequirements ? (
-                        <p className="mt-4 inline-flex items-start gap-2 rounded-[8px] bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <p className="mt-4 inline-flex items-start gap-2 rounded-[8px] bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:text-[var(--muted)]">
                           <FiMessageSquare className="mt-0.5 shrink-0 text-teal-700" />
                           {specialRequirements}
                         </p>
@@ -412,8 +413,8 @@ export default function BookingsPage() {
 
                     <div className="flex flex-col justify-between gap-4 rounded-[8px] bg-slate-50 p-5">
                       <div>
-                        <p className="text-sm text-slate-500">Total</p>
-                        <p className="mt-1 text-2xl font-bold text-slate-950">
+                        <p className="text-sm text-slate-500 dark:text-[var(--muted)]">Total</p>
+                        <p className="mt-1 text-2xl font-bold text-slate-950 dark:text-[var(--foreground)]">
                           {formatPrice(total)}
                         </p>
                         <p className="mt-3 text-xs leading-5 text-slate-500">
@@ -442,7 +443,7 @@ export default function BookingsPage() {
                       <div className="grid gap-3">
                         <Link
                           href={tourId ? `/tours/${tourId}` : "/tours"}
-                          className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-teal-700 hover:text-teal-700"
+                          className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-teal-700 hover:text-teal-700 dark:border-slate-600 dark:bg-[rgba(15,23,42,0.25)] dark:text-[var(--foreground)]"
                         >
                           View trip
                         </Link>
@@ -477,11 +478,11 @@ export default function BookingsPage() {
             })}
           </div>
         ) : (
-          <div className="rounded-[8px] border border-slate-200 bg-white p-10 text-center shadow-sm">
-            <h2 className="text-2xl font-bold text-slate-950">
+            <div className="rounded-[8px] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-[var(--border)] dark:bg-[var(--card)]">
+              <h2 className="text-2xl font-bold text-slate-950 dark:text-[var(--foreground)]">
               No bookings yet
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-slate-600">
+            <p className="mx-auto mt-3 max-w-xl text-slate-600 dark:text-[var(--muted)]">
               Your reserved tours will appear here once you complete a booking.
             </p>
             <Link

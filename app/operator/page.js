@@ -14,12 +14,7 @@ const actions = [
     description: "Publish a new tour with pricing, images, and trip details.",
     icon: FiPlusCircle,
   },
-  {
-    href: "/bookings",
-    title: "Review bookings",
-    description: "Check reservation requests and customer trip dates.",
-    icon: FiCalendar,
-  },
+
 ];
 
 export default function OperatorPage() {

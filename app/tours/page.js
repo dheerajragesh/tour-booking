@@ -20,22 +20,36 @@ const initialFilters = {
   destination: "",
   price: "",
   duration: "",
+  categories: [],
+  // legacy single category (kept for backward compat)
   category: "",
   nearby: false,
   radius: "50",
   sort: "recommended",
 };
 
+
 function getInitialFilters() {
   if (typeof window === "undefined") return initialFilters;
 
   const params = new URLSearchParams(window.location.search);
 
-  return {
-    ...initialFilters,
-    destination: params.get("destination") || "",
-    category: params.get("category") || "",
-  };
+    const categoryParam = params.get("category") || "";
+    const categoriesParam = params.get("categories") || "";
+
+    const categories = categoriesParam
+      ? categoriesParam.split(",").map((s) => decodeURIComponent(s.trim())).filter(Boolean)
+      : categoryParam
+        ? [categoryParam]
+        : [];
+
+    return {
+      ...initialFilters,
+      destination: params.get("destination") || "",
+      categories,
+      category: categories[0] || "",
+    };
+
 }
 
 export default function ToursPage() {
@@ -108,10 +122,29 @@ export default function ToursPage() {
       const destination = normalize(tour.destination);
       const title = normalize(tour.title);
       const category = normalize(tour.category);
+      const tourCategories = Array.isArray(tour.categories)
+        ? tour.categories
+        : tour.category
+          ? [tour.category]
+          : [];
+      const tourCategoriesNormalized = tourCategories.map((c) => normalize(c));
+
       const price = Number(tour.price || 0);
       const duration = Number(tour.duration || 0);
 
-      const categoryMatch = !categoryQuery || category.includes(categoryQuery);
+      const selectedCategories = Array.isArray(filters.categories)
+        ? filters.categories
+        : categoryQuery
+          ? [filters.category]
+          : [];
+
+      const categoryMatch = !selectedCategories.length
+        ? !categoryQuery || category.includes(categoryQuery)
+        : selectedCategories.some((c) => {
+            const q = normalize(c);
+            return tourCategoriesNormalized.includes(q) || tourCategoriesNormalized.some((tc) => tc.includes(q));
+          });
+
       const priceMatch = !maxPrice || price <= maxPrice;
       const durationMatch = !maxDuration || duration <= maxDuration;
       const nearbyMatch =
@@ -213,18 +246,18 @@ export default function ToursPage() {
   if (loading) return <Loader label="Loading tours..." />;
 
   return (
-    <main className="min-h-screen bg-[#f7f4ef]">
+    <main className="min-h-screen bg-[#f7f4ef] dark:bg-[var(--background)]">
       <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
-          <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
+          <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700 dark:text-teal-300">
             Tour marketplace
           </p>
           <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-end">
             <div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="text-4xl font-black tracking-tight text-slate-950 dark:text-[var(--foreground)] sm:text-5xl">
                 Compare tours, prices, and availability.
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 dark:text-[var(--muted)]">
                 Search destinations, narrow by category, sort by price or trip
                 length, then book directly through the connected backend.
               </p>
@@ -270,10 +303,10 @@ export default function ToursPage() {
             />
 
             <div className="mb-5 mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm font-semibold text-slate-600">
+              <p className="text-sm font-semibold text-slate-600 dark:text-[var(--muted)]">
                 {filteredTours.length} tour{filteredTours.length === 1 ? "" : "s"} found
               </p>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-[var(--muted)]">
                 {filteredTours.length
                   ? `Showing ${resultStart}-${resultEnd}`
                   : "Prices and availability are served by your API."}

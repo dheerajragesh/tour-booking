@@ -28,7 +28,8 @@ export default function FilterSidebar({
       destination: "",
       price: "",
       duration: "",
-      category: "",
+      categories: [],
+      category: "", // backward compat
       nearby: false,
       radius: "50",
       sort: "recommended",
@@ -36,11 +37,15 @@ export default function FilterSidebar({
     onClearLocation?.();
   };
 
+
   const activeCount = Object.entries(filters).reduce((acc, [key, value]) => {
     if (key === "sort") return value && value !== "recommended" ? acc + 1 : acc;
     if (key === "radius") return filters.nearby ? acc + 1 : acc;
+    if (key === "categories") return Array.isArray(value) && value.length ? acc + 1 : acc;
+    if (key === "category") return value ? acc + 1 : acc;
     return value ? acc + 1 : acc;
   }, 0);
+
 
   return (
     <aside className="h-fit rounded-[8px] border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-24">
@@ -142,21 +147,51 @@ export default function FilterSidebar({
           </div>
 
           <label className="block text-sm font-semibold text-slate-700">
-            Category
-            <select
-              className="mt-2 w-full rounded-[8px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-teal-700 focus:bg-white focus:ring-2 focus:ring-teal-200"
-              value={filters.category}
-              onChange={(event) => updateFilter("category", event.target.value)}
-            >
-              <option value="">All categories</option>
-              <option value="Adventure">Adventure</option>
-              <option value="Camping">Camping</option>
-              <option value="Wildlife">Wildlife</option>
-              <option value="Hiking">Hiking</option>
-              <option value="Cultural">Cultural</option>
-              <option value="Water Sports">Water Sports</option>
-            </select>
+            Categories
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {[
+                "International Tours",
+                "Domestic Tour",
+                "Honey moon Tours",
+                "Family Tours",
+                "Luxury Tours",
+                "Budget tour",
+              ].map((cat) => {
+                const selected = Array.isArray(filters.categories)
+                  ? filters.categories.includes(cat)
+                  : false;
+
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      const current = Array.isArray(filters.categories)
+                        ? filters.categories
+                        : [];
+                      const next = selected
+                        ? current.filter((c) => c !== cat)
+                        : [...current, cat];
+                      updateFilter("categories", next);
+                      // keep legacy single category filter in sync
+                      updateFilter("category", next[0] || "");
+                    }}
+                    className={`rounded-full border px-3 py-2 text-xs font-bold transition ${
+                      selected
+                        ? "border-teal-700 bg-teal-50 text-teal-800"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-700"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs font-medium text-slate-500">
+              Select multiple categories.
+            </p>
           </label>
+
 
           <label className="block text-sm font-semibold text-slate-700">
             Max price

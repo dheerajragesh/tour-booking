@@ -29,9 +29,13 @@ export default function Footer() {
             <Link href="/bookings" className="hover:text-white">
               My bookings
             </Link>
+            <Link href="/wishlist" className="hover:text-white">
+              Wishlist
+            </Link>
             <Link href="/profile" className="hover:text-white">
               Profile
             </Link>
+
           </div>
         </div>
 

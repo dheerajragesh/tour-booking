@@ -13,6 +13,10 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
 
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+
   const handleChange = (event) => {
     setForm((current) => ({
       ...current,
@@ -31,8 +35,18 @@ export default function LoginPage() {
 
       setAuthSession(data);
       toast.success(data?.message || "Logged in successfully");
-      router.push(redirectTo);
+
+      const role = data?.user?.role || data?.role || data?.type || data?.userRole;
+      const nextRedirect =
+        role === "operator"
+          ? "/operator/Dashboard"
+          : role === "admin"
+            ? "/admin"
+            : redirectTo;
+
+      router.push(nextRedirect);
       router.refresh();
+
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
@@ -40,6 +54,30 @@ export default function LoginPage() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (event) => {
+    event.preventDefault();
+    setForgotLoading(true);
+
+    try {
+      const { data } = await api.post("/auth/forgot-password", {
+        email: forgotEmail,
+      });
+
+      toast.success(
+        data?.message || "Password reset link sent to your email"
+      );
+      setForgotOpen(false);
+      setForgotEmail("");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          "Unable to send reset email. Please try again."
+      );
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -65,17 +103,20 @@ export default function LoginPage() {
 
         <section className="flex items-center px-6 py-12 sm:px-10">
           <form onSubmit={handleSubmit} className="w-full">
-            <Link href="/" className="inline-flex items-center gap-3 text-xl font-black text-slate-950">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-3 text-xl font-black text-slate-950 dark:text-[var(--foreground)]"
+            >
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] bg-teal-700 text-white">
                 <FiCompass />
               </span>
               TourBook
             </Link>
 
-            <h2 className="mt-10 text-3xl font-black text-slate-950">
+            <h2 className="mt-10 text-3xl font-black text-slate-950 dark:text-[var(--foreground)]">
               Sign in
             </h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)] dark:text-[var(--muted)]">
               Continue to booking checkout, saved tours, and profile settings.
             </p>
 
@@ -111,6 +152,19 @@ export default function LoginPage() {
                   />
                 </span>
               </label>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(form.email || "");
+                    setForgotOpen(true);
+                  }}
+                  className="text-sm font-semibold text-teal-700 hover:text-slate-950"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
 
             <button
@@ -121,9 +175,66 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Login"}
             </button>
 
+            {forgotOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="w-full max-w-md rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-black text-slate-950 dark:text-[var(--foreground)]">
+                      Reset your password
+                    </h3>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Enter your email and we’ll send a reset link.
+                    </p>
+                  </div>
+
+                  <form
+                    onSubmit={handleForgotPassword}
+                    className="space-y-4"
+                  >
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Email address
+                      <span className="mt-2 flex items-center gap-3 rounded-[8px] border border-slate-200 bg-slate-50 px-4 py-3 focus-within:border-teal-700 focus-within:bg-white">
+                        <FiMail className="text-teal-700" />
+                        <input
+                          type="email"
+                          name="email"
+                          value={forgotEmail}
+                          required
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          className="w-full border-0 bg-transparent text-sm outline-none"
+                          placeholder="you@example.com"
+                        />
+                      </span>
+                    </label>
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setForgotOpen(false)}
+                        disabled={forgotLoading}
+                        className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={forgotLoading}
+                        className="flex-1 rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {forgotLoading ? "Sending..." : "Send link"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
             <p className="mt-6 text-center text-sm text-slate-600">
               Do not have an account?{" "}
-              <Link href="/register" className="font-semibold text-teal-700 hover:text-slate-950">
+              <Link
+                href="/register"
+                className="font-semibold text-teal-700 hover:text-slate-950"
+              >
                 Create one
               </Link>
             </p>
@@ -133,3 +244,4 @@ export default function LoginPage() {
     </main>
   );
 }
+

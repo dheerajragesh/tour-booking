@@ -67,15 +67,15 @@ export default function TourDetailsPage() {
 
   if (error || !tour) {
     return (
-      <main className="min-h-screen bg-[#f7f4ef] px-5 py-16">
-        <div className="mx-auto max-w-2xl rounded-[8px] border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">
+      <main className="min-h-screen bg-[#f7f4ef] dark:bg-[var(--background)] px-5 py-16">
+        <div className="mx-auto max-w-2xl rounded-[8px] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-[var(--border)] dark:bg-[var(--card)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700 dark:text-[var(--accent)]">
             Tour unavailable
           </p>
-          <h1 className="mt-4 text-3xl font-bold text-slate-950">
+          <h1 className="mt-4 text-3xl font-bold text-slate-950 dark:text-[var(--foreground)]">
             We could not find this trip.
           </h1>
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-slate-600 dark:text-[var(--muted)]">
             {error || "The tour may have been removed or the link is outdated."}
           </p>
           <Link
@@ -110,10 +110,10 @@ export default function TourDetailsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f4ef]">
-      <section className="border-b border-slate-200 bg-white">
+    <main className="min-h-screen bg-[#f7f4ef] dark:bg-[var(--background)]">
+      <section className="border-b border-slate-200 bg-white dark:border-[var(--border)] dark:bg-[var(--card)]">
         <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-slate-500 dark:text-[var(--muted)]">
             <Link href="/" className="hover:text-teal-700">
               Home
             </Link>
@@ -122,7 +122,7 @@ export default function TourDetailsPage() {
               Tours
             </Link>
             <span className="mx-2">/</span>
-            <span className="text-slate-900">{tour.title}</span>
+            <span className="text-slate-900 dark:text-[var(--foreground)]">{tour.title}</span>
           </div>
         </div>
       </section>
@@ -174,8 +174,8 @@ export default function TourDetailsPage() {
               </div>
             </div>
 
-            <div className="rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-2xl font-bold text-slate-950">
+            <div className="rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-[var(--border)] dark:bg-[var(--card)]">
+              <h2 className="text-2xl font-bold text-slate-950 dark:text-[var(--foreground)]">
                 What is included
               </h2>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">

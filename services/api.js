@@ -2,7 +2,7 @@ import axios from "axios";
 import { clearAuthSession, getAuthToken } from "@/utils/authSession";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "/api",
+  baseURL: process.env.BACKEND_API_URL|| "/api",
   withCredentials: true,
   timeout: 15000,
 });

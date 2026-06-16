@@ -1,16 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  normalizeCollection,
-  requestWithFallback,
-} from "@/utils/apiHelpers";
+import { normalizeCollection, requestWithFallback } from "@/utils/apiHelpers";
 import { formatDate } from "@/utils/tourUtils";
 import { FiBell } from "react-icons/fi";
+import { subscribeToNotifications } from "@/utils/notificationBus";
 
 export default function NotificationDropdown({ onCountChange }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = subscribeToNotifications((incoming) => {
+      const nextNotification = {
+        _id:
+          incoming?._id ||
+          incoming?.id ||
+          `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        message: incoming?.message,
+        title: incoming?.title,
+        createdAt:
+          incoming?.createdAt ||
+          incoming?.date ||
+          new Date().toISOString(),
+        read: incoming?.read ?? false,
+        isRead: incoming?.isRead,
+        ...incoming,
+      };
+
+      setNotifications((current) => {
+        const nextList = [nextNotification, ...current].slice(0, 50);
+        const unreadCount = nextList.filter((n) => !n.read && !n.isRead).length;
+        onCountChange?.(unreadCount);
+        return nextList;
+      });
+    });
+
+    return () => unsub?.();
+  }, [onCountChange]);
 
   useEffect(() => {
     let active = true;
@@ -25,12 +52,11 @@ export default function NotificationDropdown({ onCountChange }) {
           "/notifications",
           "/notifications/my",
           "/users/notifications",
-          // Some backends expose notifications under these role-scoped paths.
           "/admin/notifications",
           "/operator/notifications",
         ]);
-        const list = normalizeCollection(data, ["notifications"]);
 
+        const list = normalizeCollection(data, ["notifications"]);
 
         if (!active) return;
 
@@ -81,9 +107,7 @@ export default function NotificationDropdown({ onCountChange }) {
                 }`}
               >
                 <p className="font-medium">
-                  {notification.message ||
-                    notification.title ||
-                    "Booking update received."}
+                  {notification.message || notification.title || "Booking update received."}
                 </p>
                 {notification.createdAt || notification.date ? (
                   <p className="mt-1 text-xs text-slate-500">
@@ -102,3 +126,4 @@ export default function NotificationDropdown({ onCountChange }) {
     </div>
   );
 }
+

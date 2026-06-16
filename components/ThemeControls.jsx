@@ -195,7 +195,7 @@ export default function ThemeControls({ className = "" }) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label="Open appearance controls"
-        className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-700 transition hover:border-teal-700 hover:text-teal-700"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-700 dark:bg-[var(--card)] dark:text-[var(--foreground)] dark:border-[var(--border)] transition hover:border-teal-700 hover:text-teal-700" 
       >
         <FiSliders />
       </button>

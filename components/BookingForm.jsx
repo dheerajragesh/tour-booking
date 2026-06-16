@@ -32,11 +32,13 @@ const createInitialForm = () => ({
   date: "",
   time: "",
   guests: 1,
+  arrivalLocation: "",
   paymentMethod: "stripe",
   specialRequirements: "",
   privateTour: false,
   addOns: [],
 });
+
 
 function getLocalAvailability(tour, form, availableTimes) {
   const unavailableDates = tour?.unavailableDates || tour?.blockedDates || [];
@@ -239,6 +241,12 @@ export default function BookingForm({ tour }) {
       return;
     }
 
+    if (!form.arrivalLocation || !String(form.arrivalLocation).trim()) {
+      toast.error("Arrival Location is required.");
+      return;
+    }
+
+
     if (isUnavailable) {
       toast.error("Choose an available slot before sending this request.");
       return;
@@ -257,6 +265,7 @@ export default function BookingForm({ tour }) {
       participants: guests,
       guests,
       numberOfGuests: guests,
+      arrivalLocation: form.arrivalLocation,
       totalPrice: total,
       amount: total,
       paymentMethod: form.paymentMethod,
@@ -271,9 +280,11 @@ export default function BookingForm({ tour }) {
         privateTour: form.privateTour,
         addOns: selectedAddOns,
         specialRequirements: form.specialRequirements,
+        arrivalLocation: form.arrivalLocation,
       },
       status: "pending",
     };
+
 
     try {
       await requestWithFallback(
@@ -305,7 +316,7 @@ export default function BookingForm({ tour }) {
   };
 
   return (
-    <div className="rounded-[8px] border border-slate-200 bg-white p-6 shadow-xl">
+    <div className="rounded-[8px] border border-slate-200 bg-white p-6 shadow-xl dark:border-[var(--border)] dark:bg-[var(--card)]">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">
           Reserve now
@@ -319,14 +330,14 @@ export default function BookingForm({ tour }) {
         </p>
       </div>
 
-      <div className="mt-6 rounded-[8px] bg-slate-50 p-5">
+      <div className="mt-6 rounded-[8px] bg-slate-50 p-5 dark:bg-[var(--card)]">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-sm text-slate-500">Price per person</span>
+          <span className="text-sm text-slate-500 dark:text-[var(--muted)]">Price per person</span>
           <span className="font-bold text-slate-950">
             {formatPrice(tour?.price)}
           </span>
         </div>
-        <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-200 pt-3">
+        <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-200 pt-3 dark:border-[var(--border)]">
           <span className="text-sm text-slate-500">Estimated total</span>
           <span className="text-xl font-black text-teal-700">
             {formatPrice(total)}
@@ -351,10 +362,26 @@ export default function BookingForm({ tour }) {
           </span>
         </label>
 
+        <label className="block text-sm font-semibold text-slate-700">
+          Arrival Location
+          <span className="mt-2 flex items-center gap-3 rounded-[8px] border border-slate-200 bg-slate-50 px-4 py-3 focus-within:border-teal-700 focus-within:bg-white">
+            <input
+              type="text"
+              name="arrivalLocation"
+              value={form.arrivalLocation}
+              required
+              placeholder="Kochi International Airport"
+              onChange={handleChange}
+              className="w-full border-0 bg-transparent text-sm outline-none"
+            />
+          </span>
+        </label>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm font-semibold text-slate-700">
             Time
             <span className="mt-2 flex items-center gap-3 rounded-[8px] border border-slate-200 bg-slate-50 px-4 py-3 focus-within:border-teal-700 focus-within:bg-white">
+
               <FiClock className="text-teal-700" />
               <select
                 name="time"

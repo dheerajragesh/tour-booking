@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { io } from "socket.io-client";
+
 import toast from "react-hot-toast";
+
+import { publishNotification } from "@/utils/notificationBus";
 import api from "@/services/api";
 import { normalizeCollection } from "@/utils/apiHelpers";
 import { FiMessageSquare, FiSend } from "react-icons/fi";
@@ -76,6 +78,7 @@ export default function ChatBox({
 }) {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+
   const [resolvedCurrentUserId, setResolvedCurrentUserId] = useState("");
   const [connected, setConnected] = useState(false);
   const [message, setMessage] = useState("");
@@ -194,8 +197,9 @@ export default function ChatBox({
       process.env.NEXT_PUBLIC_BACKEND_API_URL ||
       "http://localhost:5000";
 
-    const socket = io(socketUrl, {
+    const socket = require("socket.io-client").io(socketUrl, {
       transports: ["websocket"],
+
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 500,
@@ -235,7 +239,28 @@ export default function ChatBox({
     };
 
     messageEventNames.forEach((eventName) => {
-      socket.on(eventName, handleMessage);
+      socket.on(eventName, (data) => {
+        const normalized = normalizeMessage(data, activeUserId);
+
+        // If this is an incoming message for the currently opened conversation,
+        // keep existing behavior (append to UI).
+        if (!isSameId(normalized.senderId, activeUserId)) {
+          const belongsToThisConversation =
+            isSameId(normalized.senderId, peerId) &&
+            (!normalized.receiverId || isSameId(normalized.receiverId, activeUserId));
+
+          if (belongsToThisConversation) {
+            appendIncomingMessage(normalized);
+          }
+
+          // Always show a notification for messages from others.
+          publishNotification({
+            type: "message",
+            message: normalized.message || "New message received",
+            createdAt: new Date().toISOString(),
+          });
+        }
+      });
     });
 
     const typingEventNames = ["typing", "user_typing"];

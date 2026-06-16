@@ -14,13 +14,14 @@ import {
 } from "react-icons/fi";
 
 const CATEGORIES = [
-  "Adventure",
-  "Camping",
-  "Wildlife",
-  "Hiking",
-  "Cultural",
-  "Water Sports",
+  "International Tours",
+  "Domestic Tour",
+  "Honey moon Tours",
+  "Family Tours",
+  "Luxury Tours",
+  "Budget tour",
 ];
+
 
 const initialForm = {
   title: "",
@@ -28,7 +29,10 @@ const initialForm = {
   description: "",
   price: "",
   duration: "",
-  category: "Adventure",
+  categories: [],
+  // legacy single category
+  category: "International Tours",
+
   images: "",
   latitude: "",
   longitude: "",
@@ -123,7 +127,9 @@ export default function CreateTourPage() {
         description: form.description,
         price: Number(form.price),
         duration: Number(form.duration),
-        category: form.category,
+        categories: form.categories,
+        category: form.categories[0] || form.category,
+
         images: [...urlImages, ...base64Images],
         availableDates: splitCsv(form.availableDates),
         availableTimes: parsedTimes,
@@ -248,20 +254,42 @@ export default function CreateTourPage() {
             </label>
 
             <label className="block text-sm font-semibold text-slate-700">
-              Category
-              <select
-                name="category"
-                value={form.category}
-                onChange={handleChange}
-                className="mt-2 w-full rounded-[8px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-teal-700 focus:bg-white"
-              >
-                {CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+              Categories
+              <div className="mt-3 flex flex-wrap gap-2">
+                {CATEGORIES.map((category) => {
+                  const selected = form.categories.includes(category);
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => {
+                        setForm((current) => {
+                          const next = selected
+                            ? current.categories.filter((c) => c !== category)
+                            : [...current.categories, category];
+                          return {
+                            ...current,
+                            categories: next,
+                            category: next[0] || current.category,
+                          };
+                        });
+                      }}
+                      className={`rounded-full border px-3 py-2 text-xs font-bold transition ${
+                        selected
+                          ? "border-teal-700 bg-teal-50 text-teal-800"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-700"
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs font-medium text-slate-500">
+                Select multiple categories for this tour.
+              </p>
             </label>
+
 
             <label className="block text-sm font-semibold text-slate-700">
               Max group
@@ -422,6 +450,7 @@ export default function CreateTourPage() {
             <button
               type="submit"
               disabled={loading}
+
               className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-8 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <FiPlusCircle />
