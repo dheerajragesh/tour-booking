@@ -1,20 +1,53 @@
 @import "tailwindcss";
 
 :root {
+  /* Light */
   --background: #ffffff;
   --foreground: #0f172a;
-  --card: rgba(255, 255, 255, 0.85);
+  --card: #ffffff;
   --muted: rgba(15, 23, 42, 0.6);
   --border: rgba(15, 23, 42, 0.12);
+
+  /* Semantic surfaces (light defaults) */
+  --surface-nav: var(--card);
+  --surface-sidebar: var(--card);
+  --surface-footer: var(--card);
+  --surface-modal: var(--card);
+  --surface-dropdown: var(--card);
+  --surface-table: var(--card);
+  --surface-card: var(--card);
+  --surface-dashboard: var(--card);
+
+  /* Text */
+  --text-primary: #0f172a;
+  --text-secondary: rgba(15, 23, 42, 0.85);
+  --text-muted: rgba(15, 23, 42, 0.6);
 }
 
 :root.dark {
-  --background: #070a12;
-  --foreground: #e5e7eb;
-  --card: rgba(13, 18, 33, 0.72);
-  --muted: rgba(229, 231, 235, 0.68);
-  --border: rgba(148, 163, 184, 0.18);
+  /* True black dark mode */
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --card: #000000;
+  --muted: #B3B3B3;
+  --border: #222222;
+
+  /* Semantic surfaces (all must be pure black) */
+  --surface-nav: #000000;
+  --surface-sidebar: #000000;
+  --surface-footer: #000000;
+  --surface-modal: #000000;
+  --surface-dropdown: #000000;
+  --surface-table: #000000;
+  --surface-card: #000000;
+  --surface-dashboard: #000000;
+
+  /* Text tokens */
+  --text-primary: #FFFFFF;
+  --text-secondary: #E5E5E5;
+  --text-muted: #B3B3B3;
 }
+
 
 @theme inline {
   --color-background: var(--background);
@@ -29,37 +62,102 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Fallbacks: ensure common hardcoded light colors still flip in dark mode */
-:root.dark body,
+/* Dark-mode hardening: enforce true black + correct text/borders even for leftover Tailwind classes */
 :root.dark {
   color-scheme: dark;
 }
 
-:root.dark .bg-white {
-  background-color: rgba(13, 18, 33, 0.72) !important;
+:root.dark body {
+  background: #000000;
+  color: var(--text-primary);
+}
+
+:root.dark .bg-white,
+:root.dark .bg-white\/60,
+:root.dark .bg-slate-50,
+:root.dark .bg-slate-100,
+:root.dark .bg-slate-200,
+:root.dark .bg-slate-300,
+:root.dark .bg-teal-50,
+:root.dark .bg-slate-950\/40 {
+  background-color: #000000 !important;
 }
 
 :root.dark .text-slate-950,
-:root.dark .text-slate-900 {
-  color: var(--foreground) !important;
+:root.dark .text-slate-900,
+:root.dark .text-slate-800,
+:root.dark .text-slate-700,
+:root.dark .text-slate-600 {
+  color: var(--text-primary) !important;
 }
 
-:root.dark .text-slate-600,
 :root.dark .text-slate-500,
 :root.dark .text-slate-400 {
-  color: var(--muted-strong) !important;
+  color: var(--text-secondary) !important;
 }
 
-:root.dark .border-slate-200 {
+:root.dark .text-slate-300 {
+  color: var(--text-muted) !important;
+}
+
+:root.dark input,
+:root.dark textarea,
+:root.dark select {
+  background: #000000 !important;
+  color: var(--text-primary) !important;
   border-color: var(--border) !important;
 }
 
-:root.dark .border-slate-300 {
+:root.dark input:focus,
+:root.dark textarea:focus,
+:root.dark select:focus {
+  outline: none !important;
+  border-color: var(--accent, #0f766e) !important;
+}
+
+:root.dark input::placeholder,
+:root.dark textarea::placeholder {
+  color: #888888 !important;
+}
+
+:root.dark .border-slate-200,
+:root.dark .border-slate-300,
+:root.dark .border-slate-100 {
   border-color: var(--border) !important;
+}
+
+
+:root.dark .border-white\/10,
+:root.dark [class*="border-white/"] {
+  border-color: var(--border) !important;
+}
+
+:root.dark .bg-slate-950,
+:root.dark .bg-slate-950\/40 {
+  background-color: #000000 !important;
+}
+
+:root.dark .bg-slate-50\/40,
+:root.dark .bg-slate-100\/40 {
+  background-color: #000000 !important;
+}
+
+:root.dark .shadow-sm,
+:root.dark .shadow-xl {
+  /* keep shadows if needed; do nothing */
+}
+
+/* Charts / interactive colors */
+:root.dark .recharts-cartesian-axis-tick-value,
+:root.dark .recharts-text,
+:root.dark .recharts-label {
+  fill: #FFFFFF !important;
+  color: #FFFFFF !important;
 }
 
 
 /* Responsive utilities for exact "hamburger only below 998px" requirement */
+
 .tour-mobile-only {
   display: none;
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import api from "@/services/api";
 import toast from "react-hot-toast";
-import { getApiMessage } from "@/utils/apiHelpers";
 import {
   FiCalendar,
   FiClock,
@@ -12,12 +12,10 @@ import {
   FiPlusCircle,
   FiTag,
 } from "react-icons/fi";
-
-import { PROFESSIONAL_TOUR_CATEGORIES, dedupeCategories } from "@/utils/categories";
+import { PROFESSIONAL_TOUR_CATEGORIES } from "@/utils/categories";
+import { getApiMessage } from "@/utils/apiHelpers";
 
 const CATEGORIES = PROFESSIONAL_TOUR_CATEGORIES;
-
-
 
 const initialForm = {
   title: "",
@@ -59,11 +57,72 @@ function parseAddOns(value) {
     .filter((addOn) => addOn.name);
 }
 
-export default function CreateTourPage() {
+function stringifyAddOns(addOns) {
+  if (!Array.isArray(addOns) || !addOns.length) return "";
+  // backend shape assumed: [{ name, price }]
+  return addOns
+    .map((a) => `${a?.name || ""} | ${Number(a?.price || 0)}`.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function normalizeFetchedTour(tour) {
+  const categories = Array.isArray(tour?.categories)
+    ? tour.categories
+    : tour?.category
+      ? [tour.category]
+      : [];
+
+  const availableTimes = Array.isArray(tour?.availableTimes)
+    ? tour.availableTimes.join(", ")
+    : tour?.availableTimes || "";
+
+  const urlImages = Array.isArray(tour?.images) ? tour.images : [];
+
+  const lat = tour?.location?.lat ?? tour?.coordinates?.lat ?? tour?.latitude ?? "";
+  const lng = tour?.location?.lng ?? tour?.coordinates?.lng ?? tour?.longitude ?? "";
+
+  return {
+    title: tour?.title ?? "",
+    destination: tour?.destination ?? "",
+    description: tour?.description ?? "",
+    price: tour?.price ?? "",
+    duration: tour?.duration ?? "",
+    categories,
+    category: categories[0] || tour?.category || "International Tours",
+
+    images: urlImages.join(", "),
+    latitude: lat !== undefined && lat !== null ? String(lat) : "",
+    longitude: lng !== undefined && lng !== null ? String(lng) : "",
+    availableDates: Array.isArray(tour?.availableDates)
+      ? tour.availableDates.join(", ")
+      : tour?.availableDates ?? "",
+    availableTimes: availableTimes || "",
+    addOns: stringifyAddOns(tour?.addOns || tour?.customizationOptions || []),
+    maxGroupSize:
+      tour?.maxGroupSize ?? tour?.maxGroup ?? tour?.maxGroupSize ?? "",
+    cancellationPolicy:
+      tour?.cancellationPolicy ??
+      "Free cancellation up to 24 hours before the tour. Operator confirmation required for custom changes.",
+  };
+}
+
+export default function EditTourPage() {
+  const params = useParams();
+  const id = params?.id;
+  const router = useRouter();
+
   const [form, setForm] = useState(initialForm);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [imageFiles, setImageFiles] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const parsedAddOns = useMemo(() => parseAddOns(form.addOns), [form.addOns]);
+  const parsedTimes = useMemo(
+    () => splitCsv(form.availableTimes),
+    [form.availableTimes]
+  );
 
   useEffect(() => {
     return () => {
@@ -71,11 +130,24 @@ export default function CreateTourPage() {
     };
   }, [imagePreviews]);
 
-  const parsedAddOns = useMemo(() => parseAddOns(form.addOns), [form.addOns]);
-  const parsedTimes = useMemo(
-    () => splitCsv(form.availableTimes),
-    [form.availableTimes]
-  );
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchTour = async () => {
+      setLoading(true);
+      try {
+        const { data } = await api.get(`/tours/${id}`);
+        const tour = data?.tour || data;
+        setForm(normalizeFetchedTour(tour));
+      } catch (e) {
+        toast.error(getApiMessage(e, "Unable to load tour for editing."));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTour();
+  }, [id]);
 
   const handleChange = (event) => {
     setForm((current) => ({
@@ -94,11 +166,12 @@ export default function CreateTourPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setLoading(true);
+    if (!id) return;
+
+    setSubmitting(true);
 
     try {
       let base64Images = [];
-
       if (imageFiles.length) {
         base64Images = await Promise.all(
           imageFiles.map(
@@ -117,6 +190,7 @@ export default function CreateTourPage() {
       const lat = Number(form.latitude);
       const lng = Number(form.longitude);
       const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
+
       const payload = {
         title: form.title,
         destination: form.destination,
@@ -145,19 +219,35 @@ export default function CreateTourPage() {
           : {}),
       };
 
-      await api.post("/tours", payload);
+      // Backend supports PUT /tours/:id
+      await api.put(`/tours/${id}`, payload);
 
-      toast.success("Tour created successfully");
-      setForm(initialForm);
-      setImageFiles([]);
-      imagePreviews.forEach((src) => URL.revokeObjectURL(src));
-      setImagePreviews([]);
+      toast.success("Tour updated successfully");
+      router.push("/operator/Dashboard");
     } catch (error) {
-      toast.error(getApiMessage(error, "Unable to create tour."));
+      toast.error(getApiMessage(error, "Unable to update tour."));
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f7f4ef]">
+        <section className="border-b border-slate-200 bg-white">
+          <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
+              Operator inventory
+            </p>
+            <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              Edit a tour
+            </h1>
+            <p className="mt-4 max-w-2xl leading-7 text-slate-600">Loading tour details...</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f4ef]">
@@ -167,11 +257,10 @@ export default function CreateTourPage() {
             Operator inventory
           </p>
           <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-            Create a tour
+            Edit a tour
           </h1>
           <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-            Publish pricing, availability, customization options, images, and
-            location data from one clean workflow.
+            Update pricing, availability, customization options, and images.
           </p>
         </div>
       </section>
@@ -285,7 +374,6 @@ export default function CreateTourPage() {
                 Select multiple categories for this tour.
               </p>
             </label>
-
 
             <label className="block text-sm font-semibold text-slate-700">
               Max group
@@ -445,12 +533,11 @@ export default function CreateTourPage() {
             </p>
             <button
               type="submit"
-              disabled={loading}
-
+              disabled={submitting}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-8 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <FiPlusCircle />
-              {loading ? "Creating..." : "Create tour"}
+              {submitting ? "Saving..." : "Save changes"}
             </button>
           </div>
         </form>
@@ -458,3 +545,4 @@ export default function CreateTourPage() {
     </main>
   );
 }
+

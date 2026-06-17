@@ -75,15 +75,16 @@ export function normalizeList(payload, key) {
   return [];
 }
 
-export function formatPrice(value) {
+export function formatPrice(value, { currency = "INR", locale = "en-IN" } = {}) {
   const amount = Number(value || 0);
 
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "USD",
+    currency,
     maximumFractionDigits: amount % 1 ? 2 : 0,
   }).format(amount);
 }
+
 
 export function getTourImage(tour, index = 0) {
   const image = tour?.images?.find(Boolean);

@@ -482,12 +482,29 @@ export default function OperatorDashboard() {
                           <td className="py-4 pr-4 text-slate-600">{getDurationLabel(tour.duration)}</td>
                           <td className="py-4 pr-4 font-semibold text-slate-950">{formatPrice(tour.price)}</td>
                           <td className="py-4">
-                            <Link
-                              href={tourId ? `/tours/${tourId}` : "/tours"}
-                              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:border-teal-700 hover:text-teal-700"
-                            >
-                              View
-                            </Link>
+                            <div className="flex flex-wrap gap-2">
+                              <Link
+                                href={tourId ? `/operator/edit-tour/${tourId}` : "/operator/create-tour"}
+                                className="inline-flex items-center justify-center rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-bold text-teal-800 transition hover:border-teal-700 hover:bg-white"
+                              >
+                                Edit
+                              </Link>
+                              <Link
+                                href={tourId ? `/operator/edit-tour/${tourId}/delete/confirm` : "#"}
+                                onClick={(e) => {
+                                  if (!tourId) e.preventDefault();
+                                }}
+                                className={`inline-flex items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 ${!tourId ? "pointer-events-none opacity-60" : ""}`}
+                              >
+                                Delete
+                              </Link>
+                              <Link
+                                href={tourId ? `/tours/${tourId}` : "/tours"}
+                                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:border-teal-700 hover:text-teal-700"
+                              >
+                                View
+                              </Link>
+                            </div>
                           </td>
                         </tr>
                       );
