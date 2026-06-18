@@ -87,8 +87,12 @@ export default function Navbar() {
   const baseLinks = useMemo(() => {
     // Unauthenticated
     if (!user) {
-      return [{ href: "/tours", label: "Tours" }, { href: "/bookings", label: "Bookings" }, { href: "/wishlist", label: "Wishlist" }];
+      return [
+        { href: "/tours", label: "Tours" },
+        { href: "/bookings", label: "Bookings" },
+      ];
     }
+
 
     if (role === "operator") {
       return [
@@ -106,7 +110,6 @@ export default function Navbar() {
       { href: "/", label: "Home", exact: true },
       { href: "/tours", label: "Tours" },
       { href: "/bookings", label: "Bookings" },
-      { href: "/wishlist", label: "Wishlist" },
     ];
   }, [user, role]);
 

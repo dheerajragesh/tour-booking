@@ -21,13 +21,17 @@ function setStoredWishlist(items) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
+function getTourIdSafe(tourId) {
+  return tourId ? String(tourId) : "";
+}
+
 export default function WishlistButton({ tourId }) {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setSaved(getStoredWishlist().includes(tourId));
+      setSaved(getStoredWishlist().includes(getTourIdSafe(tourId)));
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -39,14 +43,17 @@ export default function WishlistButton({ tourId }) {
 
     try {
       await requestWithFallback("post", ["/wishlist", "/wishlists"], {
-        tourId,
-        tour: tourId,
+        tourId: getTourIdSafe(tourId),
+        tour: getTourIdSafe(tourId),
       });
       setSaved(true);
       toast.success("Added to wishlist");
+      window.dispatchEvent(new Event("wishlist:updated"));
     } catch {
       const current = getStoredWishlist();
-      const next = current.includes(tourId) ? current : [...current, tourId];
+      const next = current.includes(getTourIdSafe(tourId))
+        ? current
+        : [...current, getTourIdSafe(tourId)];
       setStoredWishlist(next);
       setSaved(true);
       toast.success("Saved locally");

@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +13,7 @@ import ImageGallery from "@/components/ImageGallery";
 import Loader from "@/components/Loader";
 import ReviewCard from "@/components/ReviewCard";
 import SocialShare from "@/components/SocialShare";
-import WishlistButton from "@/components/WishList";
+
 import {
   FALLBACK_TOURS,
   formatPrice,
@@ -194,26 +196,24 @@ export default function TourDetailsPage() {
             </div>
 
             <div className="rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-950">
-                    Traveler reviews
-                  </h2>
-                  <p className="mt-1 text-slate-500">
-                    {reviews.length
-                      ? `${reviews.length} recent review${
-                          reviews.length === 1 ? "" : "s"
-                        }`
-                      : "Be the first to review this tour."}
-                  </p>
-                </div>
-                <WishlistButton tourId={tour._id} />
-              </div>
+              <h2 className="text-2xl font-bold text-slate-950">
+                Traveler reviews
+              </h2>
+              <p className="mt-1 text-slate-500">
+                {reviews.length
+                  ? `${reviews.length} recent review${
+                      reviews.length === 1 ? "" : "s"
+                    }`
+                  : "Be the first to review this tour."}
+              </p>
 
               <div className="mt-6 space-y-4">
                 {reviews.length ? (
                   reviews.map((review) => (
-                    <ReviewCard key={review._id || review.comment} review={review} />
+                    <ReviewCard
+                      key={review._id || review.comment}
+                      review={review}
+                    />
                   ))
                 ) : (
                   <div className="rounded-[8px] bg-slate-50 p-5 text-slate-600">
@@ -223,7 +223,10 @@ export default function TourDetailsPage() {
               </div>
 
               <div className="mt-6">
-                <AddReview tourId={tourId} onReviewAdded={handleReviewAdded} />
+                <AddReview
+                  tourId={tourId}
+                  onReviewAdded={handleReviewAdded}
+                />
               </div>
             </div>
 
