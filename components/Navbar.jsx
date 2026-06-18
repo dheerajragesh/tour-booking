@@ -84,9 +84,11 @@ export default function Navbar() {
     window.localStorage.setItem("tourbook_theme", next);
   };
 
-  const desktopLinks = useMemo(() => {
+  const baseLinks = useMemo(() => {
     // Unauthenticated
-    if (!user) return [{ href: "/", label: "Home", exact: true }];
+    if (!user) {
+      return [{ href: "/tours", label: "Tours" }, { href: "/bookings", label: "Bookings" }, { href: "/wishlist", label: "Wishlist" }];
+    }
 
     if (role === "operator") {
       return [
@@ -108,6 +110,15 @@ export default function Navbar() {
     ];
   }, [user, role]);
 
+  const desktopLinks = useMemo(() => {
+    // Hide the currently active link to reduce clutter.
+    return baseLinks.filter((link) => {
+      const href = link.href;
+      const active = link.exact ? pathname === href : pathname?.startsWith(href);
+      return !active;
+    });
+  }, [baseLinks, pathname]);
+
   const renderLink = (link) => {
     const href = link.href;
     const active = link.exact ? pathname === href : isActive(href);
@@ -116,9 +127,17 @@ export default function Navbar() {
       <Link
         key={href}
         href={href}
-        onClick={closeMenu}
-        className={`text-sm font-semibold transition hover:text-teal-700 ${
-          active ? "text-teal-700" : "text-slate-600"
+        onClick={(e) => {
+          if (active) {
+            e.preventDefault();
+          } else {
+            closeMenu();
+          }
+        }}
+        className={`text-sm font-semibold transition ${
+          active
+            ? "cursor-default text-teal-700"
+            : "hover:text-teal-700 text-slate-600"
         }`}
       >
         {link.label}
@@ -152,15 +171,6 @@ export default function Navbar() {
         </div>
 
         <div className="tour-desktop-only flex items-center gap-3">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 bg-white/60 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-900/60"
-          >
-            {theme === "dark" ? <FiSun /> : <FiMoon />}
-          </button>
-
           {user ? (
             <>
               <div className="relative">
@@ -234,6 +244,18 @@ export default function Navbar() {
       {menuOpen ? (
         <div className="tour-mobile-only border-t border-slate-200 bg-white px-5 py-4">
           <div className="grid gap-2">{desktopLinks.map(renderLink)}</div>
+
+          <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+            >
+              {theme === "dark" ? <FiMoon /> : <FiSun />}
+              {theme === "dark" ? "Dark Mode" : "Light Mode"}
+            </button>
+          </div>
 
           <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4">
             {user ? (
