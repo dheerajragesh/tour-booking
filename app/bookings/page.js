@@ -1,15 +1,18 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import StripeCheckoutButton from "@/components/StripeCheckoutButton";
 import toast from "react-hot-toast";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import {
   getApiMessage,
   normalizeCollection,
   normalizeRecord,
   requestWithFallback,
 } from "@/utils/apiHelpers";
+
 import {
   formatDate,
   formatPrice,
@@ -269,10 +272,27 @@ export default function BookingsPage() {
     }
   };
 
-  const handleCancelBooking = async (booking) => {
-    const bookingId = getItemId(booking);
-    if (!confirm("Cancel this booking request?")) return;
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteTargetBooking, setDeleteTargetBooking] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const openDeleteBookingModal = (booking) => {
+    setDeleteTargetBooking(booking);
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteBookingModal = () => {
+    if (deleteLoading) return;
+    setDeleteModalOpen(false);
+    setDeleteTargetBooking(null);
+  };
+
+  const handleConfirmDeleteBooking = async () => {
+    const booking = deleteTargetBooking;
+    const bookingId = booking ? getItemId(booking) : null;
+    if (!bookingId) return;
+
+    setDeleteLoading(true);
     setSavingId(bookingId);
 
     try {
@@ -288,15 +308,14 @@ export default function BookingsPage() {
         );
       }
 
-      setBookings((current) =>
-        current.map((item) =>
-          getItemId(item) === bookingId ? { ...item, status: "cancelled" } : item
-        )
-      );
-      toast.success("Booking cancelled.");
+      toast.success("Booking deleted.");
+      await fetchBookings();
+      setDeleteModalOpen(false);
+      setDeleteTargetBooking(null);
     } catch (error) {
-      toast.error(getApiMessage(error, "Unable to cancel booking."));
+      toast.error(getApiMessage(error, "Unable to delete booking."));
     } finally {
+      setDeleteLoading(false);
       setSavingId("");
     }
   };
@@ -462,12 +481,14 @@ export default function BookingsPage() {
                         {!["cancelled", "canceled"].includes(status) && bookingId ? (
                           <button
                             type="button"
-                            disabled={savingId === bookingId}
-                            onClick={() => handleCancelBooking(booking)}
+                            disabled={deleteLoading && savingId === bookingId}
+                            onClick={() => openDeleteBookingModal(booking)}
                             className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <FiTrash2 />
-                            {savingId === bookingId ? "Cancelling..." : "Cancel booking"}
+                            {deleteLoading && savingId === bookingId
+                              ? "Deleting..."
+                              : "Delete booking"}
                           </button>
                         ) : null}
                       </div>
@@ -503,6 +524,20 @@ export default function BookingsPage() {
           onSave={(form) => handleUpdateBooking(editingBooking, form)}
         />
       ) : null}
+
+      <DeleteConfirmationModal
+        open={deleteModalOpen}
+        title="Delete Booking"
+        description="Are you sure you want to delete this booking? This action cannot be undone."
+        confirmText={deleteLoading ? "Deleting..." : "Delete Booking"}
+        cancelText="Cancel"
+        disabled={deleteLoading}
+        onCancel={closeDeleteBookingModal}
+        onConfirm={handleConfirmDeleteBooking}
+        confirmButtonClassName={
+          deleteLoading ? "animate-pulse" : ""
+        }
+      />
     </main>
   );
 }
