@@ -16,6 +16,46 @@ import {
   normalizeList,
 } from "@/utils/tourUtils";
 
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenize(value) {
+  const n = normalizeText(value);
+  return n ? n.split(" ").filter(Boolean) : [];
+}
+
+function getTourSearchStrings(tour) {
+  const title = tour?.title || "";
+  const destination = tour?.destination || "";
+  const description = tour?.description || "";
+
+  // Your DB shape seems inconsistent (some sample tours have only destination/category).
+  // We still try to cover all required fields safely.
+  const country = tour?.country || tour?.location?.country || "";
+  const city = tour?.city || tour?.location?.city || "";
+
+  const categories = Array.isArray(tour?.categories)
+    ? tour.categories
+    : tour?.category
+      ? [tour.category]
+      : [];
+
+  return {
+    title: normalizeText(title),
+    destination: normalizeText(destination),
+    description: normalizeText(description),
+    country: normalizeText(country),
+    city: normalizeText(city),
+    categories: categories.map(normalizeText).filter(Boolean),
+  };
+}
+
+
 const initialFilters = {
   destination: "",
   price: "",
@@ -86,29 +126,15 @@ export default function ToursPage() {
   }, []);
 
   const filteredTours = useMemo(() => {
-    const destinationQuery = filters.destination.trim().toLowerCase();
-    const categoryQuery = filters.category.trim().toLowerCase();
+    const searchQuery = normalizeText(filters.destination);
+    const searchTokens = searchQuery ? tokenize(searchQuery) : [];
+
     const maxPrice = Number(filters.price);
     const maxDuration = Number(filters.duration);
     const radius = Number(filters.radius || 50);
 
-    const normalize = (s) =>
-      String(s || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-    const tokenize = (s) =>
-      normalize(s)
-        .split(" ")
-        .filter(Boolean);
-
-    const queryTokens = destinationQuery
-      ? tokenize(destinationQuery)
-      : [];
-
     const annotatedTours = tours.map((tour) => {
+
       const coordinates = getTourCoordinates(tour);
       const distance =
         userLocation && coordinates
@@ -119,49 +145,53 @@ export default function ToursPage() {
     });
 
     const results = annotatedTours.filter(({ tour, distance }) => {
-      const destination = normalize(tour.destination);
-      const title = normalize(tour.title);
-      const category = normalize(tour.category);
-      const tourCategories = Array.isArray(tour.categories)
-        ? tour.categories
-        : tour.category
-          ? [tour.category]
-          : [];
-      const tourCategoriesNormalized = tourCategories.map((c) => normalize(c));
-
-      const price = Number(tour.price || 0);
-      const duration = Number(tour.duration || 0);
+      const tourSearch = getTourSearchStrings(tour);
 
       const selectedCategories = Array.isArray(filters.categories)
         ? filters.categories
-        : categoryQuery
+        : filters.category
           ? [filters.category]
           : [];
 
+      const tourCategoriesNormalized = tourSearch.categories;
+
+      // Category filter: OR across selected categories.
       const categoryMatch = !selectedCategories.length
-        ? !categoryQuery || category.includes(categoryQuery)
+        ? true
         : selectedCategories.some((c) => {
-            const q = normalize(c);
-            return tourCategoriesNormalized.includes(q) || tourCategoriesNormalized.some((tc) => tc.includes(q));
+            const q = normalizeText(c);
+            if (!q) return false;
+            return (
+              tourCategoriesNormalized.includes(q) ||
+              tourCategoriesNormalized.some((tc) => tc.includes(q))
+            );
           });
+
+      const price = Number(tour.price || 0);
+      const duration = Number(tour.duration || 0);
 
       const priceMatch = !maxPrice || price <= maxPrice;
       const durationMatch = !maxDuration || duration <= maxDuration;
       const nearbyMatch =
         !filters.nearby || (distance !== null && distance <= radius);
 
-      if (!destinationQuery) {
-        return categoryMatch && priceMatch && durationMatch && nearbyMatch;
-      }
-
-      // E-commerce style matching: token-based AND match.
-      // Each query token must appear either in destination or title.
-      const destinationTokensMatch = queryTokens.every(
-        (t) => destination.includes(t) || title.includes(t)
-      );
+      // Search filter: token-based AND across title/destination/description/country/city/categories.
+      const searchMatch =
+        !searchTokens.length
+          ? true
+          : searchTokens.every((tok) => {
+              return (
+                tourSearch.title.includes(tok) ||
+                tourSearch.destination.includes(tok) ||
+                tourSearch.description.includes(tok) ||
+                tourSearch.country.includes(tok) ||
+                tourSearch.city.includes(tok) ||
+                tourCategoriesNormalized.some((tc) => tc.includes(tok))
+              );
+            });
 
       return (
-        destinationTokensMatch &&
+        searchMatch &&
         categoryMatch &&
         priceMatch &&
         durationMatch &&
@@ -169,21 +199,33 @@ export default function ToursPage() {
       );
     });
 
-    return [...results].sort((a, b) => {
-      if (filters.sort === "nearest" || filters.nearby) {
-        return (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY);
-      }
+    return [...results]
+      .sort((a, b) => {
+        if (filters.sort === "nearest" || filters.nearby) {
+          return (
+            (a.distance ?? Number.POSITIVE_INFINITY) -
+            (b.distance ?? Number.POSITIVE_INFINITY)
+          );
+        }
 
-      if (filters.sort === "price-low") return Number(a.tour.price || 0) - Number(b.tour.price || 0);
-      if (filters.sort === "price-high") return Number(b.tour.price || 0) - Number(a.tour.price || 0);
-      if (filters.sort === "duration") return Number(a.tour.duration || 0) - Number(b.tour.duration || 0);
+        if (filters.sort === "price-low")
+          return Number(a.tour.price || 0) - Number(b.tour.price || 0);
+        if (filters.sort === "price-high")
+          return Number(b.tour.price || 0) - Number(a.tour.price || 0);
+        if (filters.sort === "duration")
+          return Number(a.tour.duration || 0) - Number(b.tour.duration || 0);
 
-      const ratingB = Number.parseFloat(getRating(b.tour));
-      const ratingA = Number.parseFloat(getRating(a.tour));
-      return (Number.isNaN(ratingB) ? 0 : ratingB) - (Number.isNaN(ratingA) ? 0 : ratingA);
-    }).map(({ tour, distance }) =>
-      distance === null ? tour : { ...tour, distanceMiles: distance }
-    );
+        const ratingB = Number.parseFloat(getRating(b.tour));
+        const ratingA = Number.parseFloat(getRating(a.tour));
+        return (
+          (Number.isNaN(ratingB) ? 0 : ratingB) -
+          (Number.isNaN(ratingA) ? 0 : ratingA)
+        );
+      })
+      .map(({ tour, distance }) =>
+        distance === null ? tour : { ...tour, distanceMiles: distance }
+      );
+
   }, [tours, filters, userLocation]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTours.length / pageSize));

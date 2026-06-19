@@ -46,7 +46,8 @@ export default function Home() {
 
   const handleSearch = (query) => {
     const params = new URLSearchParams();
-    if (query) params.set("destination", query);
+    const cleaned = String(query || "").trim();
+    if (cleaned) params.set("search", cleaned);
     router.push(`/tours${params.toString() ? `?${params}` : ""}`);
   };
 
@@ -72,7 +73,16 @@ export default function Home() {
             </p>
 
             <div className="mt-8 max-w-2xl">
-              <SearchBar onSearch={handleSearch} />
+              <div className="flex flex-col gap-4">
+                <SearchBar
+                  onSearch={(q) => handleSearch(q)}
+                  placeholder="Search tours, destinations, categories..."
+                />
+              </div>
+
+              <div className="mt-4">
+                {/* Category multi-select will be implemented next iteration */}
+              </div>
             </div>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">

@@ -1,14 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 
-export default function SearchBar({ onSearch, defaultValue = "", compact = false }) {
+function normalizeQuery(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export default function SearchBar({
+  onSearch,
+  defaultValue = "",
+  compact = false,
+  placeholder = "Search destinations or experiences",
+  debounceMs = 350,
+  enableDebounce = true,
+}) {
   const [query, setQuery] = useState(defaultValue);
+  const latestValueRef = useRef(query);
+
+  useEffect(() => {
+    latestValueRef.current = query;
+  }, [query]);
+
+  const normalizedQuery = useMemo(() => normalizeQuery(query), [query]);
+
+  useEffect(() => {
+    if (!enableDebounce) return;
+
+    const t = setTimeout(() => {
+      onSearch?.(normalizedQuery);
+    }, debounceMs);
+
+    return () => clearTimeout(t);
+  }, [normalizedQuery, debounceMs, enableDebounce, onSearch]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    onSearch?.(query.trim());
+    onSearch?.(normalizedQuery);
   };
 
   return (
@@ -23,13 +53,14 @@ export default function SearchBar({ onSearch, defaultValue = "", compact = false
         <span className="sr-only">Search destination</span>
         <input
           type="text"
-          placeholder="Search destinations or experiences"
+          placeholder={placeholder}
           className="w-full min-w-0 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
           value={query}
           onChange={(event) => {
-            const value = event.target.value;
-            setQuery(value);
-            if (!compact && !value.trim()) onSearch?.("");
+            setQuery(event.target.value);
+            if (!event.target.value.trim() && !enableDebounce) {
+              onSearch?.("");
+            }
           }}
         />
       </label>
@@ -43,3 +74,4 @@ export default function SearchBar({ onSearch, defaultValue = "", compact = false
     </form>
   );
 }
+
